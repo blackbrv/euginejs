@@ -1,0 +1,43 @@
+{
+  "name": "@eugine/core",
+  "version": "0.1.0",
+  "description": "Eugine core engine: document model, component registry, commands, history and events for building visual editors.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "eugine",
+    "editor",
+    "page-builder",
+    "visual-editor",
+    "document-model"
+  ],
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
