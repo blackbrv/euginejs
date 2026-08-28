@@ -40,7 +40,28 @@ tsup/vitest): `npm install-scripts approve esbuild@<version>` — already pre-ap
 repo's `package.json` `allowScripts` field, but re-approve if npm complains after a version bump.
 
 Before publishing/packaging changes, validate contents with `npm pack --dry-run -w <package>`
-(see `.github/workflows/ci.yml` for the exact gate order: typecheck → build → test → pack).
+(see `.github/workflows/ci.yml` for the exact gate order: build → typecheck → test → pack).
+
+**Build must run before typecheck, always — in CI and locally.** Every package resolves its
+siblings (e.g. `@eugine/renderer` importing `@eugine/core`) through the consumed package's
+`"types"` field, which points at `./dist/index.d.ts` — a build output, not the source. On a fresh
+clone (or after `npm run clean`), running `tsc --noEmit` before a build fails with `Cannot find
+module '@eugine/core'`. The root `build` script accounts for this internally too: `@eugine/eugine`
+re-exports `@eugine/renderer`/`@eugine/renderer-server`, so building it before those two exist
+fails the same way — npm workspaces otherwise iterate packages alphabetically, not in dependency
+order, so `build` explicitly lists packages via repeated `-w` flags in dependency order (core →
+renderer/renderer-server → eugine → apps/examples) instead of a plain `--workspaces` sweep. If you
+add a new workspace package, add it to that explicit list in the correct position — a bare
+`--workspaces --if-present` will silently reintroduce this failure mode for anything that depends
+on another workspace package.
+
+**The effective minimum Node version is set by the strictest workspace member, not the root
+`engines` field alone.** The `@eugine/*` library packages support Node >=18.18, but `examples/*`
+are Next.js 16 apps that require Node >=20.9 and fail `next build` outright on older Node — since
+`npm run build`/`npm run typecheck` run across every workspace, the CI matrix (and anyone running
+these scripts locally) needs Node >=20.9 for the whole repo to build clean, even though individual
+`@eugine/*` packages remain installable on Node 18 elsewhere. If you add a workspace with a
+stricter Node requirement, bump the CI matrix in `.github/workflows/ci.yml` accordingly.
 
 ## Package graph
 

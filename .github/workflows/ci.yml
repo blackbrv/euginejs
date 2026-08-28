@@ -10,7 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        # The @eugine/* library packages support Node >=18.18, but this repo
+        # also builds the Next.js examples (examples/*), which require Node
+        # >=20.9 — `npm run build` runs across every workspace, so the whole
+        # matrix must satisfy the strictest requirement in the tree.
+        node-version: [20.x, 22.x]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
