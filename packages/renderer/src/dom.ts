@@ -4,6 +4,8 @@ import type { EugineDocument, EugineNode, NodeProps } from "@eugine/core";
 export interface DomRenderContext<TData = unknown> {
   node: EugineNode;
   data: TData | undefined;
+  /** Whether this node is currently selected — see RenderToDomOptions.selection / DomRenderer.setSelection(). */
+  selected: boolean;
 }
 
 /**
@@ -24,11 +26,36 @@ export interface RenderToDomOptions<TData = unknown> {
   registry: ComponentRegistry<DomComponentRenderer<TData>>;
   data?: TData;
   onMissingComponent?: OnMissingComponent;
+  /** Node ids selected at initial render. Update afterwards via DomRenderer.setSelection(). */
+  selection?: Iterable<string>;
 }
+
+/**
+ * The attribute the renderer sets (present, no value) on the element of any
+ * currently-selected node — see DomRenderer.setSelection(). Eugine deliberately
+ * ships no default selection styling: hosts decide what "selected" looks like
+ * entirely through their own CSS (or their component render functions, via
+ * DomRenderContext.selected), by targeting this attribute how they like, e.g.:
+ *
+ *   [data-eugine-selected] { outline: 2px solid #6366f1; }
+ *   [data-eugine-selected]::after { content: attr(data-eugine-type); ... }
+ */
+export const SELECTED_ATTRIBUTE = "data-eugine-selected";
 
 export interface DomRenderer {
   /** Applies a new document, patching only the DOM nodes whose data actually changed. */
   update(document: EugineDocument): void;
+  /**
+   * Marks exactly these node ids as selected: toggles `data-eugine-selected`
+   * on their live elements (no rebuild, no reconcile — existing element
+   * identity, scroll position, focus, etc. are all preserved) and updates
+   * DomRenderContext.selected for any node rebuilt afterwards. Call this
+   * from wherever you observe `editor.selection` changing, e.g.
+   * `editor.selection.onSelectionChange(({ ids }) => renderer.setSelection(ids))`.
+   */
+  setSelection(ids: Iterable<string>): void;
+  /** The node ids currently marked selected. */
+  getSelection(): string[];
   /** The live DOM node currently rendered for a given node id, if any. */
   getElement(id: string): Node | undefined;
   /** Detaches everything this renderer created and stops tracking it. */
@@ -50,6 +77,7 @@ export function renderToDom<TData = unknown>(
   const elements = new Map<string, Node>();
   const previousNodes = new Map<string, EugineNode>();
   const onMissing = options.onMissingComponent ?? "placeholder";
+  let selectedIds = new Set<string>(options.selection ?? []);
 
   function buildNode(node: EugineNode, children: Node[]): Node {
     if (node.hidden) return globalThis.document.createComment(`eugine:hidden ${node.id}`);
@@ -70,7 +98,7 @@ export function renderToDom<TData = unknown>(
     }
 
     if (typeof definition.render === "function") {
-      return definition.render(node.props, children, { node, data: options.data });
+      return definition.render(node.props, children, { node, data: options.data, selected: selectedIds.has(node.id) });
     }
 
     return buildPlaceholder(node, children);
@@ -101,6 +129,7 @@ export function renderToDom<TData = unknown>(
 
     const children = node.children.map((childId) => reconcile(childId, doc, visited));
     const next = buildNode(node, children);
+    if (next instanceof Element) next.toggleAttribute(SELECTED_ATTRIBUTE, selectedIds.has(id));
     elements.set(id, next);
     previousNodes.set(id, node);
 
@@ -110,11 +139,25 @@ export function renderToDom<TData = unknown>(
     return next;
   }
 
+  function applySelection(next: Set<string>): void {
+    const affected = new Set([...selectedIds, ...next]);
+    for (const id of affected) {
+      const el = elements.get(id);
+      if (el instanceof Element) el.toggleAttribute(SELECTED_ATTRIBUTE, next.has(id));
+    }
+    selectedIds = next;
+  }
+
   function collectGarbage(visited: Set<string>): void {
     for (const id of Array.from(elements.keys())) {
       if (!visited.has(id)) {
         elements.delete(id);
         previousNodes.delete(id);
+      }
+    }
+    if (selectedIds.size > 0) {
+      for (const id of selectedIds) {
+        if (!visited.has(id)) selectedIds.delete(id);
       }
     }
   }
@@ -132,11 +175,14 @@ export function renderToDom<TData = unknown>(
 
   return {
     update,
+    setSelection: (ids) => applySelection(new Set(ids)),
+    getSelection: () => Array.from(selectedIds),
     getElement: (id) => elements.get(id),
     destroy: () => {
       container.replaceChildren();
       elements.clear();
       previousNodes.clear();
+      selectedIds.clear();
     },
   };
 }

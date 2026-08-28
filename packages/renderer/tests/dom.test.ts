@@ -1,6 +1,6 @@
 import { ComponentRegistry, createEmptyDocument, createNode, insertNode, removeNode, updateNodeProps } from "@eugine/core";
 import { describe, expect, it } from "vitest";
-import { renderToDom, type DomComponentRenderer } from "../src/dom.js";
+import { renderToDom, SELECTED_ATTRIBUTE, type DomComponentRenderer } from "../src/dom.js";
 
 function buildRegistry() {
   const registry = new ComponentRegistry<DomComponentRenderer>();
@@ -99,6 +99,77 @@ describe("renderToDom", () => {
     const container = document.createElement("div");
     renderToDom(doc, container, { registry });
     expect(container.querySelector('[data-eugine-type="mystery"]')).not.toBeNull();
+  });
+
+  it("marks initially-selected nodes with the selection attribute and passes ctx.selected", () => {
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("text", { id: "a", props: { content: "A" } }), doc.rootId);
+    doc = insertNode(doc, createNode("text", { id: "b", props: { content: "B" } }), doc.rootId);
+
+    const seenSelected: Record<string, boolean> = {};
+    const registry = new ComponentRegistry<DomComponentRenderer>();
+    registry.register({ type: "root", render: (_p, c) => { const el = document.createElement("main"); c.forEach((n) => el.appendChild(n)); return el; } });
+    registry.register({
+      type: "text",
+      render: (props, _c, ctx) => {
+        seenSelected[ctx.node.id] = ctx.selected;
+        const el = document.createElement("p");
+        el.textContent = String(props.content ?? "");
+        return el;
+      },
+    });
+
+    const container = document.createElement("div");
+    const renderer = renderToDom(doc, container, { registry, selection: ["a"] });
+
+    expect(seenSelected).toEqual({ a: true, b: false });
+    expect((renderer.getElement("a") as HTMLElement).hasAttribute(SELECTED_ATTRIBUTE)).toBe(true);
+    expect((renderer.getElement("b") as HTMLElement).hasAttribute(SELECTED_ATTRIBUTE)).toBe(false);
+    expect(renderer.getSelection()).toEqual(["a"]);
+  });
+
+  it("setSelection() toggles the attribute without rebuilding the element (no reconcile)", () => {
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("text", { id: "a", props: { content: "A" } }), doc.rootId);
+
+    const container = document.createElement("div");
+    const renderer = renderToDom(doc, container, { registry: buildRegistry() });
+    const elBefore = renderer.getElement("a");
+
+    renderer.setSelection(["a"]);
+    expect((renderer.getElement("a") as HTMLElement).hasAttribute(SELECTED_ATTRIBUTE)).toBe(true);
+    expect(renderer.getElement("a")).toBe(elBefore); // same element — no rebuild happened
+
+    renderer.setSelection([]);
+    expect((renderer.getElement("a") as HTMLElement).hasAttribute(SELECTED_ATTRIBUTE)).toBe(false);
+    expect(renderer.getElement("a")).toBe(elBefore);
+  });
+
+  it("a node rebuilt after a data change keeps reflecting current selection", () => {
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("text", { id: "a", props: { content: "A" } }), doc.rootId);
+
+    const container = document.createElement("div");
+    const renderer = renderToDom(doc, container, { registry: buildRegistry() });
+    renderer.setSelection(["a"]);
+
+    const nextDoc = updateNodeProps(doc, "a", { content: "A2" });
+    renderer.update(nextDoc);
+
+    expect((renderer.getElement("a") as HTMLElement).hasAttribute(SELECTED_ATTRIBUTE)).toBe(true);
+  });
+
+  it("prunes a removed node's id out of the tracked selection", () => {
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("text", { id: "a", props: { content: "A" } }), doc.rootId);
+
+    const container = document.createElement("div");
+    const renderer = renderToDom(doc, container, { registry: buildRegistry(), selection: ["a"] });
+
+    const nextDoc = removeNode(doc, "a");
+    renderer.update(nextDoc);
+
+    expect(renderer.getSelection()).toEqual([]);
   });
 
   it("destroy() clears the container and internal state", () => {
