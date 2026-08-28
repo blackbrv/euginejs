@@ -101,6 +101,16 @@ export class Editor {
 
     this.disposers.push(
       this.store.onChange(({ document, previous }) => {
+        // Any node that no longer exists (removed directly, removed as part
+        // of an ancestor's subtree, unwrapped, etc.) must not linger in
+        // selection — otherwise a document.change listener that looks up
+        // the current selection (e.g. to render a property panel) can
+        // observe a selected id that getNode() will throw on. Pruning here,
+        // before re-emitting "document.change", guarantees selection is
+        // already consistent with the document by the time any listener
+        // (including the host's own) sees the change.
+        const stale = this.selection.get().filter((id) => !document.nodes[id]);
+        if (stale.length > 0) this.selection.deselect(stale);
         this.events.emit("document.change", { document, previous });
       }),
       this.history.events.on("undo", (payload) => this.events.emit("history.undo", payload)),
@@ -174,9 +184,12 @@ export class Editor {
   }
 
   remove(id: string): void {
+    // Selection cleanup for `id` and any removed descendants is handled
+    // generically by the store.onChange listener registered in the
+    // constructor, which prunes any selected id no longer present in the
+    // document as soon as it changes.
     this.history.execute(new RemoveNodeCommand(id));
     this.events.emit("node.delete", { id });
-    if (this.selection.isSelected(id)) this.selection.deselect(id);
   }
 
   move(id: string, parentId: string, index?: number): void {

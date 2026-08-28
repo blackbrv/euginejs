@@ -88,6 +88,37 @@ describe("createEditor", () => {
     expect(editor.selection.get()).toEqual([]);
   });
 
+  it("clears selection of a descendant when an ancestor is removed", () => {
+    const editor = buildBasicEditor();
+    const sectionId = editor.insert("section", editor.getDocument().rootId);
+    const textId = editor.insert("text", sectionId);
+    editor.selection.select(textId);
+
+    editor.remove(sectionId);
+
+    expect(editor.selection.get()).toEqual([]);
+  });
+
+  it("keeps selection state consistent with the document for any document.change listener, even one firing synchronously during remove()", () => {
+    const editor = buildBasicEditor();
+    const sectionId = editor.insert("section", editor.getDocument().rootId);
+    const textId = editor.insert("text", sectionId);
+    editor.selection.select(textId);
+
+    // A host app commonly re-renders a property panel off document.change by
+    // looking up the current selection — this must never throw, even though
+    // the listener runs synchronously inside the remove() call that just
+    // deleted the selected node's ancestor.
+    let observedDuringChange: unknown;
+    editor.events.on("document.change", () => {
+      const selectedId = editor.selection.get()[0];
+      observedDuringChange = selectedId ? editor.getNode(selectedId) : undefined;
+    });
+
+    expect(() => editor.remove(sectionId)).not.toThrow();
+    expect(observedDuringChange).toBeUndefined();
+  });
+
   it("serializes and reloads a document", () => {
     const editor = buildBasicEditor();
     editor.insert("text", editor.getDocument().rootId);
