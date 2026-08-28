@@ -1,0 +1,24 @@
+{
+  "name": "example-kitchen-sink",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A comprehensive Next.js example exercising every MVP feature in eugine: drag-and-drop, nested drop rules, multi-select, lock/hide flags, wrap/unwrap, transactions, the plugin system, an API-backed storage adapter, and a separate server-rendered publish/preview route.",
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start -p 3002",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "eugine": "0.1.0",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "typescript": "^5.6.3"
+  }
+}

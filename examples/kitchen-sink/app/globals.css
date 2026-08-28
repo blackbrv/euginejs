@@ -1,0 +1,252 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #f4f5f7;
+}
+
+.ks-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.ks-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #1f2430;
+  color: white;
+}
+
+.ks-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ks-toolbar-actions button,
+.ks-toolbar-actions a {
+  padding: 6px 10px;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+  background: #2c3345;
+  border: 1px solid #3a4157;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.ks-status {
+  font-size: 12px;
+  color: #9aa4bf;
+  margin-left: 8px;
+}
+
+.ks-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 210px 1fr 240px 260px;
+  min-height: 0;
+}
+
+.ks-panel {
+  background: white;
+  border-right: 1px solid #ddd;
+  padding: 12px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.ks-inspector {
+  border-left: 1px solid #ddd;
+}
+
+.ks-events {
+  border-left: 1px solid #ddd;
+  border-right: none;
+}
+
+.ks-panel h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #888;
+  margin: 12px 0 6px;
+}
+
+.ks-palette-item {
+  padding: 7px 9px;
+  margin-bottom: 5px;
+  background: #eef0f4;
+  border-radius: 4px;
+  cursor: grab;
+  font-size: 12px;
+}
+
+.ks-layers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ks-layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 4px;
+  cursor: pointer;
+  border-radius: 3px;
+  gap: 6px;
+}
+
+.ks-layer-row:hover {
+  background: #f0f0f0;
+}
+
+.ks-layer-selected {
+  background: #dce8ff;
+}
+
+.ks-layer-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ks-layer-actions button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 1px 3px;
+}
+
+.ks-canvas-wrapper {
+  overflow: auto;
+  padding: 24px;
+}
+
+.ks-canvas {
+  background: white;
+  min-height: 100%;
+  border: 1px dashed #ccc;
+  padding: 16px;
+}
+
+.ks-node:hover {
+  outline: 1px dashed #7aa7ff;
+  outline-offset: 2px;
+}
+
+.ks-locked {
+  outline: 1px solid #e0a100 !important;
+}
+
+.ks-drop-target {
+  outline: 2px solid #3366ff !important;
+}
+
+.ks-section,
+.ks-container,
+.ks-grid,
+.ks-card {
+  border: 1px solid #eee;
+  padding: 12px;
+  margin-bottom: 10px;
+  min-height: 40px;
+}
+
+.ks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ks-card {
+  background: #fafbfc;
+}
+
+.ks-card h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #333;
+  text-transform: none;
+}
+
+.ks-placeholder {
+  color: #999;
+  font-size: 11px;
+  border: 1px dashed #ccc;
+  padding: 8px;
+  text-align: center;
+}
+
+.ks-button {
+  display: inline-block;
+  padding: 6px 14px;
+  background: #3366ff;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.ks-field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.ks-field span {
+  display: block;
+  margin-bottom: 4px;
+  color: #666;
+  font-size: 11px;
+}
+
+.ks-field input {
+  width: 100%;
+  padding: 4px 6px;
+}
+
+.ks-empty {
+  color: #888;
+  font-size: 12px;
+}
+
+.ks-inspector button {
+  margin: 4px 4px 4px 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ks-event-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: #444;
+}
+
+.ks-event-log li {
+  padding: 2px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Server-rendered /preview page */
+.ks-page {
+  max-width: 720px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: system-ui, sans-serif;
+}
+
+.ks-section,
+.ks-container {
+  border-radius: 6px;
+}
