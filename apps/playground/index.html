@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eugine Playground</title>
+    <script>
+      // Set the theme attribute synchronously, before first paint, so
+      // switching to dark mode never flashes a light frame first.
+      (function () {
+        try {
+          var stored = localStorage.getItem("eugine-playground:theme");
+          var theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

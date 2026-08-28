@@ -1,0 +1,779 @@
+/* ---------- Reset ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+/* ---------- Theme tokens ---------- */
+
+:root {
+  --bg: #f6f6f9;
+  --surface: #ffffff;
+  --surface-alt: #f9f9fc;
+  --surface-hover: #f0f0f5;
+  --border: #e4e4ec;
+  --border-strong: #d3d3de;
+  --text: #16161d;
+  --text-muted: #6b6b78;
+  --text-faint: #9a9aa6;
+  --accent: #5546ff;
+  --accent-hover: #4535e6;
+  --accent-soft: #eeecff;
+  --accent-text: #ffffff;
+  --success: #178a4c;
+  --success-soft: #e5f6ec;
+  --danger: #d1293d;
+  --danger-soft: #fceaec;
+  --shadow-sm: 0 1px 2px rgba(20, 20, 35, 0.06);
+  --shadow-md: 0 8px 24px rgba(20, 20, 35, 0.1);
+  --shadow-lg: 0 24px 64px rgba(20, 20, 35, 0.22);
+  --radius-sm: 7px;
+  --radius-md: 11px;
+  --radius-lg: 18px;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #101014;
+  --surface: #17171d;
+  --surface-alt: #1d1d25;
+  --surface-hover: #24242e;
+  --border: #2b2b36;
+  --border-strong: #3a3a48;
+  --text: #f1f1f5;
+  --text-muted: #a3a3b0;
+  --text-faint: #6c6c79;
+  --accent: #8281ff;
+  --accent-hover: #9695ff;
+  --accent-soft: rgba(130, 129, 255, 0.16);
+  --accent-text: #ffffff;
+  --success: #3ecb82;
+  --success-soft: rgba(62, 203, 130, 0.14);
+  --danger: #ff6b7a;
+  --danger-soft: rgba(255, 107, 122, 0.14);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- Base ---------- */
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.eb-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ---------- App shell ---------- */
+
+.eb-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.eb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.eb-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.eb-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.eb-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eb-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Buttons ---------- */
+
+.eb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease),
+    transform 100ms var(--ease),
+    box-shadow 140ms var(--ease),
+    border-color 140ms var(--ease);
+}
+
+.eb-btn-group .eb-btn {
+  border-radius: calc(var(--radius-md) - 3px);
+}
+
+.eb-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.eb-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.eb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.eb-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.eb-btn-icon {
+  padding: 7px;
+}
+
+.eb-btn-accent {
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.eb-btn-accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.eb-btn-ghost {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.eb-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.eb-btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.eb-btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 9px 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.eb-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.eb-btn-success {
+  background: var(--success-soft) !important;
+  color: var(--success) !important;
+  border-color: transparent !important;
+}
+
+.eb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease),
+    transform 100ms var(--ease);
+}
+
+.eb-icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.eb-icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* ---------- Theme toggle ---------- */
+
+.eb-theme-toggle {
+  position: relative;
+  overflow: hidden;
+}
+
+.eb-theme-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition:
+    transform 320ms var(--ease),
+    opacity 220ms var(--ease);
+}
+
+.eb-theme-icon-sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.eb-theme-icon-moon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.eb-theme-toggle[data-theme-icon="dark"] .eb-theme-icon-sun {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.eb-theme-toggle[data-theme-icon="dark"] .eb-theme-icon-moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+/* ---------- Body layout ---------- */
+
+.eb-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr 260px;
+  min-height: 0;
+}
+
+.eb-panel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.eb-inspector {
+  border-left: 1px solid var(--border);
+  border-right: none;
+}
+
+.eb-panel h3 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin: 18px 0 8px;
+}
+
+.eb-panel h3:first-child {
+  margin-top: 2px;
+}
+
+/* ---------- Palette ---------- */
+
+.eb-palette-item {
+  padding: 9px 11px;
+  margin-bottom: 6px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  font-size: 13px;
+  transition:
+    background-color 140ms var(--ease),
+    border-color 140ms var(--ease),
+    transform 100ms var(--ease);
+}
+
+.eb-palette-item:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: translateX(2px);
+}
+
+.eb-palette-item:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+/* ---------- Layers ---------- */
+
+.eb-layers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.eb-layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 6px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color 120ms var(--ease);
+}
+
+.eb-layer-row:hover {
+  background: var(--surface-hover);
+}
+
+.eb-layer-selected {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.eb-layer-actions button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-faint);
+  border-radius: 4px;
+  padding: 1px 4px;
+  transition: color 120ms var(--ease);
+}
+
+.eb-layer-actions button:hover {
+  color: var(--text);
+}
+
+/* ---------- Canvas ---------- */
+
+.eb-canvas-wrapper {
+  overflow: auto;
+  padding: 28px;
+  background: var(--bg);
+}
+
+/*
+ * The canvas simulates a real, published web page — and a real page is
+ * white with dark text by default, whatever theme the *editor chrome*
+ * happens to be in. So everything inside .eb-canvas is intentionally NOT
+ * themed off the app's --bg/--surface/--text tokens (those flip with dark
+ * mode); it uses fixed "site" colors instead, matching exportHtml.ts's
+ * EXPORT_CSS so the canvas stays a true WYSIWYG preview of the export.
+ */
+.eb-canvas {
+  --site-bg: #ffffff;
+  --site-text: #1a1a1a;
+  --site-text-muted: #3a3a3a;
+  --site-border: #e4e4ea;
+  --site-accent: #4f46e5;
+
+  background: var(--site-bg);
+  min-height: 100%;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  color: var(--site-text);
+}
+
+.eb-canvas-root {
+  min-height: 400px;
+}
+
+.eb-node {
+  position: relative;
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline-color 120ms var(--ease);
+}
+
+.eb-node:hover {
+  outline: 1.5px dashed var(--accent);
+}
+
+.eb-drop-target {
+  outline: 2px solid var(--accent) !important;
+  background: var(--accent-soft);
+}
+
+/*
+ * Selection marker — see @eugine/renderer's `data-eugine-selected`
+ * attribute (README: "Selection marker"). Eugine ships no default look for
+ * this; everything below is this app's own choice, freely swappable for a
+ * different outline, a corner handle, a floating toolbar, etc.
+ */
+[data-eugine-selected] {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}
+
+[data-eugine-selected]::before {
+  content: attr(data-eugine-type);
+  position: absolute;
+  top: 0;
+  left: -2px;
+  transform: translateY(-100%);
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 4px 4px 4px 0;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.eb-section,
+.eb-container {
+  border: 1px solid var(--site-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 10px;
+  min-height: 40px;
+}
+
+.eb-placeholder {
+  color: #9a9aa0;
+  font-size: 12px;
+  border: 1px dashed var(--site-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+
+.eb-button {
+  display: inline-block;
+  padding: 7px 16px;
+  background: var(--site-accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.eb-image {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+}
+
+.eb-heading,
+.eb-text {
+  color: var(--site-text);
+}
+
+/* ---------- Inspector ---------- */
+
+.eb-field {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.eb-field span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-muted);
+}
+
+.eb-field input {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 140ms var(--ease),
+    box-shadow 140ms var(--ease);
+}
+
+.eb-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.eb-inspector-empty {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+/* ---------- Toasts ---------- */
+
+.eb-toast-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.eb-toast {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity 220ms var(--ease),
+    transform 220ms var(--ease);
+}
+
+:root[data-theme="dark"] .eb-toast {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+
+.eb-toast-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.eb-toast-success {
+  background: var(--success);
+  color: #fff;
+}
+
+.eb-toast-error {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ---------- Export dialog ---------- */
+
+.eb-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 10, 16, 0.4);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 200ms var(--ease),
+    visibility 0s linear 200ms;
+}
+
+.eb-scroll-lock {
+  overflow: hidden;
+}
+
+.eb-dialog-backdrop.eb-dialog-open {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 200ms var(--ease),
+    visibility 0s;
+}
+
+.eb-dialog {
+  width: 100%;
+  max-width: 640px;
+  max-height: min(720px, 88vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(10px) scale(0.97);
+  opacity: 0;
+  transition:
+    transform 240ms var(--ease),
+    opacity 200ms var(--ease);
+}
+
+.eb-dialog-backdrop.eb-dialog-open .eb-dialog {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.eb-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.eb-dialog-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.eb-dialog-tabs {
+  position: relative;
+  display: flex;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.eb-tab {
+  position: relative;
+  padding: 10px 4px;
+  margin-right: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 140ms var(--ease);
+}
+
+.eb-tab[aria-selected="true"] {
+  color: var(--text);
+}
+
+.eb-tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 18px;
+  width: 40px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: transform 220ms var(--ease);
+}
+
+.eb-dialog-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px;
+}
+
+.eb-code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.eb-code-filename {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.eb-code-block {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.eb-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.eb-dialog-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.eb-dialog-hint code {
+  font-family: ui-monospace, "SF Mono", monospace;
+  color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  .eb-body {
+    grid-template-columns: 1fr;
+  }
+  .eb-panel {
+    display: none;
+  }
+}
