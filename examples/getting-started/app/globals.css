@@ -1,0 +1,75 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+
+nav {
+  display: flex;
+  gap: 16px;
+  padding: 14px 20px;
+  background: #1f2430;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.page .section {
+  padding: 24px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+}
+
+.eb-canvas {
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 160px;
+  background: white;
+}
+
+.eb-canvas [data-eugine-type="section"] {
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.eb-toolbar {
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.eb-toolbar button {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+pre {
+  background: #11141a;
+  color: #b8f0c0;
+  padding: 14px;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 12px;
+}
