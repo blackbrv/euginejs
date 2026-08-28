@@ -9,7 +9,7 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w @eugine/core -w @eugine/renderer -w @eugine/renderer-server -w eugine -w playground -w example-getting-started -w example-kitchen-sink --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

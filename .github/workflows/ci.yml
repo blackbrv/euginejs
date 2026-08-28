@@ -18,8 +18,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
+      # build MUST run before typecheck: packages resolve each other via
+      # their published "types" field (./dist/*.d.ts), which only exists
+      # after a build. Running typecheck first fails with "Cannot find
+      # module '@eugine/core'" on a fresh checkout.
       - run: npm run build
+      - run: npm run typecheck
       - run: npm run test
       - name: Validate npm package contents
         run: |
