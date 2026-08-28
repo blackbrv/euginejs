@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "description": "Eugine – an extensible engine for building visual page builders and editors",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*",
+    "examples/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
