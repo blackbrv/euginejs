@@ -65,6 +65,53 @@ describe("createEditor", () => {
     expect(editor.getNode(sectionId).children).toHaveLength(2);
   });
 
+  it("copies a subtree and pastes a fresh-id clone into a different parent", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const sourceSection = editor.insert("section", root);
+    const textId = editor.insert("text", sourceSection, { props: { content: "Copy me" } });
+
+    const snapshot = editor.copySubtree(textId);
+    const targetSection = editor.insert("section", root);
+    const pastedId = editor.pasteSubtree(snapshot, targetSection);
+
+    expect(pastedId).not.toBe(textId);
+    expect(editor.getNode(targetSection).children).toEqual([pastedId]);
+    expect(editor.getNode(pastedId).props.content).toBe("Copy me");
+    // The original is untouched — copy is non-destructive.
+    expect(editor.getNode(sourceSection).children).toEqual([textId]);
+  });
+
+  it("pastes the same snapshot multiple times without id collisions", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const section = editor.insert("section", root);
+    const textId = editor.insert("text", section);
+    const snapshot = editor.copySubtree(textId);
+
+    const first = editor.pasteSubtree(snapshot, section);
+    const second = editor.pasteSubtree(snapshot, section);
+
+    expect(new Set([textId, first, second]).size).toBe(3);
+    expect(editor.getNode(section).children).toEqual([textId, first, second]);
+  });
+
+  it("pastes a subtree (with descendants) as one undo step", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const section = editor.insert("section", root);
+    editor.insert("text", section);
+    const snapshot = editor.copySubtree(section); // section + its text child
+
+    const pastedId = editor.pasteSubtree(snapshot, root);
+    expect(editor.getNode(pastedId).children).toHaveLength(1);
+
+    editor.history.undo();
+    expect(editor.getDocument().nodes[pastedId]).toBeUndefined();
+    // Undoing the paste must not touch the original subtree it was copied from.
+    expect(editor.getNode(section).children).toHaveLength(1);
+  });
+
   it("emits structured lifecycle + document events", () => {
     const editor = buildBasicEditor();
     const events: string[] = [];

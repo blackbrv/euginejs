@@ -3,6 +3,7 @@ import {
   DuplicateNodeCommand,
   InsertNodeCommand,
   MoveNodeCommand,
+  PasteSubtreeCommand,
   ReorderChildrenCommand,
   ReplaceNodeCommand,
   RemoveNodeCommand,
@@ -20,7 +21,14 @@ import { ComponentRegistry } from "./registry.js";
 import { Selection } from "./selection.js";
 import { LoadDocumentOptions, MigrationRegistry, loadDocument, serializeDocument } from "./serialization.js";
 import { StorageManager } from "./storage.js";
-import { createEmptyDocument, getNode, type CreateNodeOptions } from "./tree.js";
+import {
+  captureSubtree,
+  cloneSubtreeSnapshot,
+  createEmptyDocument,
+  getNode,
+  type CreateNodeOptions,
+  type SubtreeSnapshot,
+} from "./tree.js";
 import type {
   ComponentDefinition,
   EugineDocument,
@@ -211,6 +219,29 @@ export class Editor {
     const newId = command.duplicatedId;
     if (newId) this.events.emit("node.create", { node: this.getNode(newId) });
     return newId ?? id;
+  }
+
+  /**
+   * Captures `id` and its subtree as a self-contained snapshot — detached
+   * from the live document, so it's safe to hold onto (in an app-level
+   * clipboard, for example) even after further edits, undo, or the
+   * original node being removed. Pair with pasteSubtree().
+   */
+  copySubtree(id: string): SubtreeSnapshot {
+    return { rootId: id, nodes: captureSubtree(this.store.get(), id) };
+  }
+
+  /**
+   * Attaches a fresh, uniquely-id'd clone of `snapshot` (from copySubtree())
+   * under `parentId`. Safe to call any number of times with the same
+   * snapshot — every paste gets its own new ids, so nothing collides with
+   * the original or with earlier pastes. One undo step.
+   */
+  pasteSubtree(snapshot: SubtreeSnapshot, parentId: string, index?: number): string {
+    const clone = cloneSubtreeSnapshot(snapshot.nodes, snapshot.rootId);
+    this.history.execute(new PasteSubtreeCommand(clone.nodes, clone.rootId, parentId, index));
+    this.events.emit("node.create", { node: this.getNode(clone.rootId) });
+    return clone.rootId;
   }
 
   updateProps(id: string, props: NodeProps, options: { merge?: boolean } = {}): void {

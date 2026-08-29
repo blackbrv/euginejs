@@ -6,3 +6,4 @@ export { ReorderChildrenCommand } from "./reorder.js";
 export { DuplicateNodeCommand } from "./duplicate.js";
 export { UpdatePropsCommand, UpdateStylesCommand, ReplaceNodeCommand } from "./props.js";
 export { WrapNodeCommand, UnwrapNodeCommand } from "./wrap.js";
+export { PasteSubtreeCommand } from "./paste.js";

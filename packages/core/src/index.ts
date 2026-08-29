@@ -27,6 +27,7 @@ export type {
 // Tree operations
 export {
   captureSubtree,
+  cloneSubtreeSnapshot,
   createEmptyDocument,
   createNode,
   duplicateSubtree,
@@ -51,7 +52,7 @@ export {
   walk,
   wrapNode,
 } from "./tree.js";
-export type { CreateNodeOptions, MoveOptions } from "./tree.js";
+export type { CreateNodeOptions, MoveOptions, SubtreeSnapshot } from "./tree.js";
 
 // Document store
 export { DocumentStore } from "./document.js";

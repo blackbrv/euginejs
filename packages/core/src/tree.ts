@@ -2,6 +2,12 @@ import { invalidDocument, nodeNotFound } from "./errors.js";
 import { createId } from "./id.js";
 import { CURRENT_SCHEMA_VERSION, type EugineDocument, type EugineNode, type NodeProps, type NodeStyles } from "./types.js";
 
+/** A self-contained, detached copy of a node subtree — see captureSubtree()/cloneSubtreeSnapshot(). */
+export interface SubtreeSnapshot {
+  rootId: string;
+  nodes: Record<string, EugineNode>;
+}
+
 export interface CreateNodeOptions {
   id?: string;
   props?: NodeProps;
@@ -251,29 +257,63 @@ export function replaceNode(document: EugineDocument, id: string, next: EugineNo
  * node id plus the updated document (the clone is NOT yet attached to a
  * parent — insert it explicitly).
  */
-export function duplicateSubtree(document: EugineDocument, id: string): { document: EugineDocument; newId: string } {
-  const source = getNode(document, id);
+/**
+ * Fresh-id clone of a set of nodes (by id, all drawn from `sourceNodes`):
+ * every id gets a new one, and every `parent`/`children` pointer among them
+ * is remapped to match. Shared by duplicateSubtree() (cloning within a live
+ * document) and cloneSubtreeSnapshot() (cloning an external, captured
+ * snapshot — see that function's docs).
+ */
+function remapSubtreeIds(
+  sourceNodes: Record<string, EugineNode>,
+  ids: string[],
+): { idMap: Map<string, string>; nodes: Record<string, EugineNode> } {
   const idMap = new Map<string, string>();
-  for (const originalId of subtreeIds(document, id)) {
-    idMap.set(originalId, createId("node"));
-  }
+  for (const id of ids) idMap.set(id, createId("node"));
 
-  const nodes = cloneNodesMap(document);
-  for (const originalId of idMap.keys()) {
-    const originalNode = getNode(document, originalId);
-    const newId = idMap.get(originalId)!;
+  const nodes: Record<string, EugineNode> = {};
+  for (const id of ids) {
+    const original = sourceNodes[id]!;
+    const newId = idMap.get(id)!;
     nodes[newId] = {
-      ...originalNode,
+      ...original,
       id: newId,
-      parent: originalNode.parent ? idMap.get(originalNode.parent) ?? originalNode.parent : null,
-      children: originalNode.children.map((childId) => idMap.get(childId) ?? childId),
+      parent: original.parent ? (idMap.get(original.parent) ?? original.parent) : null,
+      children: original.children.map((childId) => idMap.get(childId) ?? childId),
     };
   }
+  return { idMap, nodes };
+}
 
-  const newId = idMap.get(source.id)!;
-  nodes[newId] = { ...nodes[newId]!, parent: null };
+export function duplicateSubtree(document: EugineDocument, id: string): { document: EugineDocument; newId: string } {
+  const { idMap, nodes: cloned } = remapSubtreeIds(document.nodes, subtreeIds(document, id));
+  const newId = idMap.get(id)!;
+  cloned[newId] = { ...cloned[newId]!, parent: null };
 
-  return { document: { ...document, nodes }, newId };
+  return { document: { ...document, nodes: { ...cloneNodesMap(document), ...cloned } }, newId };
+}
+
+/**
+ * Clones an arbitrary captured subtree snapshot (see captureSubtree) with
+ * fresh ids — independent of any live document, so the result can be
+ * attached into ANY document/parent, any number of times, even after the
+ * original node has been edited or removed. This is the "paste" half of a
+ * copy/paste feature; captureSubtree() is the "copy" half:
+ *
+ *   const snapshot = captureSubtree(document, copiedId);   // copy
+ *   const clone = cloneSubtreeSnapshot(snapshot, copiedId); // fresh ids
+ *   const next = restoreSubtree(document, clone.nodes, clone.rootId, targetParentId); // paste
+ *
+ * (`editor.copySubtree()`/`editor.pasteSubtree()` wrap exactly this.)
+ */
+export function cloneSubtreeSnapshot(
+  snapshot: Record<string, EugineNode>,
+  rootId: string,
+): { rootId: string; nodes: Record<string, EugineNode> } {
+  const { idMap, nodes: cloned } = remapSubtreeIds(snapshot, Object.keys(snapshot));
+  const newRootId = idMap.get(rootId)!;
+  cloned[newRootId] = { ...cloned[newRootId]!, parent: null };
+  return { rootId: newRootId, nodes: cloned };
 }
 
 /** Wraps `id` in a newly created node of `wrapperType`, preserving position. */

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  captureSubtree,
+  cloneSubtreeSnapshot,
   createEmptyDocument,
   createNode,
   duplicateSubtree,
@@ -105,6 +107,36 @@ describe("tree operations", () => {
     expect(next.nodes[clonedChildId]?.type).toBe("text");
     // original subtree untouched
     expect(next.nodes.hero?.children).toEqual(["heading"]);
+  });
+
+  it("clones a captured subtree snapshot with fresh, remapped ids", () => {
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("section", { id: "hero" }), doc.rootId);
+    doc = insertNode(doc, createNode("text", { id: "heading" }), "hero");
+
+    const snapshot = captureSubtree(doc, "hero");
+    const clone = cloneSubtreeSnapshot(snapshot, "hero");
+
+    expect(clone.rootId).not.toBe("hero");
+    expect(clone.nodes[clone.rootId]?.parent).toBeNull();
+    expect(clone.nodes[clone.rootId]?.children).toHaveLength(1);
+    const clonedChildId = clone.nodes[clone.rootId]!.children[0]!;
+    expect(clonedChildId).not.toBe("heading");
+    expect(clone.nodes[clonedChildId]?.type).toBe("text");
+    expect(clone.nodes[clonedChildId]?.parent).toBe(clone.rootId);
+    // The original snapshot is untouched — cloning is non-destructive/pure.
+    expect(snapshot.hero?.id).toBe("hero");
+  });
+
+  it("clones the same snapshot twice into different, non-colliding id sets", () => {
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("text", { id: "t" }), doc.rootId);
+    const snapshot = captureSubtree(doc, "t");
+
+    const first = cloneSubtreeSnapshot(snapshot, "t");
+    const second = cloneSubtreeSnapshot(snapshot, "t");
+
+    expect(first.rootId).not.toBe(second.rootId);
   });
 
   it("wraps and unwraps a node, preserving position", () => {
