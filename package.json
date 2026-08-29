@@ -2,7 +2,7 @@
   "name": "eugine-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "Eugine – an extensible engine for building visual page builders and editors",
+  "description": "Eugine \u2013 an extensible engine for building visual page builders and editors",
   "workspaces": [
     "packages/*",
     "apps/*",
@@ -26,7 +26,8 @@
   },
   "license": "MIT",
   "allowScripts": {
+    "esbuild@0.21.5": true,
     "esbuild@0.27.7": true,
-    "esbuild@0.21.5": true
+    "esbuild@0.28.2": true
   }
 }
