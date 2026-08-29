@@ -7,7 +7,7 @@ export { createId } from "./id.js";
 
 // Events
 export { EventBus } from "./events.js";
-export type { EugineEventMap, Listener } from "./events.js";
+export type { EugineEventMap, EventBusOptions, Listener, ListenerErrorHandler } from "./events.js";
 
 // Types / document model
 export { CURRENT_SCHEMA_VERSION } from "./types.js";
