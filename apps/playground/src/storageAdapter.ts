@@ -1,11 +1,31 @@
-import { isSerializedDocument, type SerializedDocument, type StorageAdapter } from "eugine";
+import {
+  documentRevision,
+  isSerializedDocument,
+  type SaveOptions,
+  type SaveResult,
+  type SerializedDocument,
+  type StorageAdapter,
+} from "eugine";
 
 const KEY_PREFIX = "eugine-playground:";
 
 /** A minimal, real StorageAdapter implementation — Eugine ships none by design. */
 export class LocalStorageAdapter implements StorageAdapter {
-  save(document: SerializedDocument, id = "default"): void {
+  save(document: SerializedDocument, options: SaveOptions = {}): SaveResult {
+    const id = options.id ?? "default";
+
+    // Optimistic concurrency, even against localStorage: two tabs of the same
+    // app share it, and without this check whichever one autosaves last
+    // silently erases the other's work.
+    if (options.baseRevision !== undefined) {
+      const stored = this.load(id);
+      if (stored && documentRevision(stored.document) > options.baseRevision) {
+        return { ok: false, reason: "conflict", current: stored };
+      }
+    }
+
     window.localStorage.setItem(KEY_PREFIX + id, JSON.stringify(document));
+    return { ok: true, revision: documentRevision(document.document) };
   }
 
   load(id = "default"): SerializedDocument | undefined {

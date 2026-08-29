@@ -115,7 +115,13 @@ undoBtn.addEventListener("click", () => editor.history.undo());
 redoBtn.addEventListener("click", () => editor.history.redo());
 
 document.getElementById("btn-save")!.addEventListener("click", async () => {
-  await editor.storage.save(editor.serialize());
+  // editor.save() tags the write with the revision it was based on, so a
+  // second tab that saved in the meantime is reported instead of overwritten.
+  const result = await editor.save();
+  if (!result.ok) {
+    showToast("Someone else saved this page first — reload before saving again", "error");
+    return;
+  }
   showToast("Saved to local storage", "success");
 });
 
