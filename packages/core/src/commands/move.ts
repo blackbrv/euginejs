@@ -1,6 +1,7 @@
 import { invalidDrop } from "../errors.js";
-import { getNode, moveNode } from "../tree.js";
+import { getNode, hasNode, moveNode } from "../tree.js";
 import type { DocumentStore } from "../document.js";
+import type { EugineOperation } from "../operations.js";
 import type { Command } from "./types.js";
 
 export class MoveNodeCommand implements Command {
@@ -28,6 +29,21 @@ export class MoveNodeCommand implements Command {
 
   undo(store: DocumentStore): void {
     if (!this.previousParentId) return;
-    store.set(moveNode(store.get(), this.id, this.previousParentId, { index: this.previousIndex }));
+    const document = store.get();
+
+    // Another client removed the node entirely — there is nothing to move back.
+    if (!hasNode(document, this.id)) return;
+
+    // ...or removed where it came from. Return it to the root rather than
+    // throwing and stranding the rest of the transaction half-undone.
+    const parentId = hasNode(document, this.previousParentId) ? this.previousParentId : document.rootId;
+
+    // moveNode clamps the index to the parent's current child count, so an
+    // index recorded before a sibling was removed still lands sensibly.
+    store.set(moveNode(document, this.id, parentId, { index: this.previousIndex }));
+  }
+
+  toOperation(): EugineOperation {
+    return { type: "move", id: this.id, parentId: this.newParentId, index: this.index };
   }
 }

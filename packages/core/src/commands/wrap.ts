@@ -1,6 +1,7 @@
-import { getNode, moveNode, unwrapNode, wrapNode } from "../tree.js";
-import type { CreateNodeOptions } from "../tree.js";
+import { getNode, hasNode, moveNode, unwrapNode, wrapNode } from "../tree.js";
+import type { CreateNodeOptions, IdFactory } from "../tree.js";
 import type { DocumentStore } from "../document.js";
+import type { EugineOperation } from "../operations.js";
 import type { Command } from "./types.js";
 
 export class WrapNodeCommand implements Command {
@@ -11,6 +12,7 @@ export class WrapNodeCommand implements Command {
     private readonly id: string,
     private readonly wrapperType: string,
     private readonly options: CreateNodeOptions = {},
+    private readonly idFactory?: IdFactory,
   ) {}
 
   get createdWrapperId(): string | null {
@@ -18,14 +20,30 @@ export class WrapNodeCommand implements Command {
   }
 
   execute(store: DocumentStore): void {
-    const { document, wrapperId } = wrapNode(store.get(), this.id, this.wrapperType, this.options);
+    // Reuse the id minted on the first execute, so a redo rebuilds the *same*
+    // wrapper node rather than a new one the host holds no reference to.
+    const options = this.wrapperId ? { ...this.options, id: this.wrapperId } : this.options;
+    const { document, wrapperId } = wrapNode(store.get(), this.id, this.wrapperType, options, this.idFactory);
     this.wrapperId = wrapperId;
     store.set(document);
   }
 
   undo(store: DocumentStore): void {
     if (!this.wrapperId) return;
-    store.set(unwrapNode(store.get(), this.wrapperId));
+    const document = store.get();
+    if (!hasNode(document, this.wrapperId)) return;
+    store.set(unwrapNode(document, this.wrapperId));
+  }
+
+  toOperation(): EugineOperation | null {
+    if (!this.wrapperId) return null;
+    return {
+      type: "wrap",
+      id: this.id,
+      wrapperId: this.wrapperId,
+      wrapperType: this.wrapperType,
+      wrapper: this.options,
+    };
   }
 }
 
@@ -35,28 +53,57 @@ export class UnwrapNodeCommand implements Command {
   private wrapperOptions: CreateNodeOptions = {};
   private childIds: string[] = [];
 
-  constructor(private readonly id: string) {}
+  constructor(
+    private readonly id: string,
+    private readonly idFactory?: IdFactory,
+  ) {}
 
   execute(store: DocumentStore): void {
     const document = store.get();
     const node = getNode(document, this.id);
     this.wrapperType = node.type;
-    this.wrapperOptions = { id: node.id, props: node.props, styles: node.styles, className: node.className, metadata: node.metadata, customData: node.customData };
+    // Carrying the original id means undo restores the same wrapper node,
+    // which keeps redo and any remote replay deterministic.
+    this.wrapperOptions = {
+      id: node.id,
+      props: node.props,
+      styles: node.styles,
+      className: node.className,
+      metadata: node.metadata,
+      customData: node.customData,
+    };
     this.childIds = node.children.slice();
     store.set(unwrapNode(document, this.id));
   }
 
   undo(store: DocumentStore): void {
-    if (!this.wrapperType || this.childIds.length === 0) return;
+    if (!this.wrapperType) return;
     let document = store.get();
-    const firstChild = getNode(document, this.childIds[0]!);
-    const parentId = firstChild.parent;
+
+    // Rewrap whichever children still exist; another client may have deleted
+    // some of them since. If they are all gone there is nothing to wrap.
+    const surviving = this.childIds.filter((childId) => hasNode(document, childId));
+    const first = surviving[0];
+    if (first === undefined) return;
+
+    const parentId = getNode(document, first).parent;
     if (!parentId) return;
-    const { document: wrapped, wrapperId } = wrapNode(document, this.childIds[0]!, this.wrapperType, this.wrapperOptions);
+
+    const { document: wrapped, wrapperId } = wrapNode(
+      document,
+      first,
+      this.wrapperType,
+      this.wrapperOptions,
+      this.idFactory,
+    );
     document = wrapped;
-    this.childIds.slice(1).forEach((childId, offset) => {
+    surviving.slice(1).forEach((childId, offset) => {
       document = moveNode(document, childId, wrapperId, { index: offset + 1 });
     });
     store.set(document);
+  }
+
+  toOperation(): EugineOperation {
+    return { type: "unwrap", id: this.id };
   }
 }

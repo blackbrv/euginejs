@@ -1,6 +1,7 @@
-import { removeNode, restoreSubtree } from "../tree.js";
+import { hasNode, removeNode, restoreSubtree } from "../tree.js";
 import type { EugineNode } from "../types.js";
 import type { DocumentStore } from "../document.js";
+import type { EugineOperation } from "../operations.js";
 import type { Command } from "./types.js";
 
 /**
@@ -20,10 +21,21 @@ export class PasteSubtreeCommand implements Command {
   ) {}
 
   execute(store: DocumentStore): void {
-    store.set(restoreSubtree(store.get(), this.nodes, this.rootId, this.parentId, this.index));
+    store.set(
+      restoreSubtree(store.get(), this.nodes, this.rootId, this.parentId, {
+        index: this.index,
+        overwriteExisting: false,
+      }),
+    );
   }
 
   undo(store: DocumentStore): void {
-    store.set(removeNode(store.get(), this.rootId));
+    const document = store.get();
+    if (!hasNode(document, this.rootId)) return;
+    store.set(removeNode(document, this.rootId));
+  }
+
+  toOperation(): EugineOperation {
+    return { type: "attach", nodes: this.nodes, rootId: this.rootId, parentId: this.parentId, index: this.index };
   }
 }
