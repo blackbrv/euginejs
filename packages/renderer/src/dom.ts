@@ -37,8 +37,10 @@ export interface RenderToDomOptions<TData = unknown> {
  * entirely through their own CSS (or their component render functions, via
  * DomRenderContext.selected), by targeting this attribute how they like, e.g.:
  *
- *   [data-eugine-selected] { outline: 2px solid #6366f1; }
- *   [data-eugine-selected]::after { content: attr(data-eugine-type); ... }
+ * ```css
+ * [data-eugine-selected] { outline: 2px solid #6366f1; }
+ * [data-eugine-selected]::after { content: attr(data-eugine-type); }
+ * ```
  */
 export const SELECTED_ATTRIBUTE = "data-eugine-selected";
 
