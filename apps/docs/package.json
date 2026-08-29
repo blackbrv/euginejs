@@ -1,0 +1,34 @@
+{
+  "name": "docs",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The Eugine documentation site: guides, concepts, a generated API reference, and live in-page editors built on the library itself.",
+  "scripts": {
+    "dev": "next dev -p 3003",
+    "build": "next build",
+    "start": "next start -p 3003",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "eugine": "0.1.0",
+    "fumadocs-core": "^16.15.4",
+    "fumadocs-mdx": "^15.4.0",
+    "fumadocs-ui": "^16.15.4",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "postcss": "^8.4.47",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
