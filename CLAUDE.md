@@ -57,11 +57,35 @@ on another workspace package.
 
 **The effective minimum Node version is set by the strictest workspace member, not the root
 `engines` field alone.** The `@eugine/*` library packages support Node >=18.18, but `examples/*`
-are Next.js 16 apps that require Node >=20.9 and fail `next build` outright on older Node — since
+and `apps/docs` are Next.js 16 apps that require Node >=20.9 and fail `next build` outright on
+older Node — since
 `npm run build`/`npm run typecheck` run across every workspace, the CI matrix (and anyone running
 these scripts locally) needs Node >=20.9 for the whole repo to build clean, even though individual
 `@eugine/*` packages remain installable on Node 18 elsewhere. If you add a workspace with a
 stricter Node requirement, bump the CI matrix in `.github/workflows/ci.yml` accordingly.
+
+## Documentation site (`apps/docs`)
+
+Next.js 16 + Fumadocs, deployed on Vercel (`apps/docs/vercel.json` carries the build settings, so
+they are not dashboard-only). It consumes `eugine` through the workspace symlink, which is the
+whole reason it lives in this repo rather than a separate one — examples run against the working
+tree, not a published release.
+
+Two pieces are load-bearing and easy to break:
+
+- **Code snippets are never pasted into MDX.** They are read out of real `.ts` files in
+  `apps/docs/src/examples/` by the `<CodeFromFile file="..." region="..." />` server component,
+  which slices `// #region <id>` blocks. Those files are covered by `tsc --noEmit`, so changing a
+  signature in `packages/core` fails `npm run typecheck` instead of leaving the docs quietly
+  wrong. Verify the guard still works by breaking an example on purpose.
+- **`content/docs/api/` is generated and gitignored.** `npm run api -w docs` runs TypeDoc and then
+  `scripts/api-frontmatter.mjs`, which lifts each page's `# H1` into frontmatter `title` (Fumadocs
+  rejects a page without one, and would otherwise render the heading twice) and writes a collapsed
+  `meta.json` per directory. Never edit those files by hand.
+
+A JSDoc comment in library source that contains an unfenced `{` becomes an MDX parse error once
+TypeDoc emits it — fence code examples in doc comments (see `SELECTED_ATTRIBUTE` in
+`packages/renderer/src/dom.ts`).
 
 ## Package graph
 
