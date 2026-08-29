@@ -103,7 +103,7 @@ export type { EuginePlugin } from "./plugin.js";
 
 // Storage
 export { MemoryStorageAdapter, StorageManager, createAutosave } from "./storage.js";
-export type { AutosaveOptions, StorageAdapter } from "./storage.js";
+export type { AutosaveHandle, AutosaveOptions, SaveOptions, SaveResult, StorageAdapter } from "./storage.js";
 
 // Editor facade
 export { Editor, createEditor } from "./editor.js";
