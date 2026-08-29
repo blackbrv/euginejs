@@ -98,6 +98,33 @@ against the `ComponentRegistry` *before* constructing a command, then calls `his
 If you add a new mutating editor method, follow that same order (validate → build command →
 `history.execute`) so undo/redo and events stay consistent.
 
+**Undo computes inverses; it never restores snapshots.** This is a hard invariant, not a style
+preference. A command's `undo()` must derive its inverse against the document *as it is at undo
+time* and must touch only what that command touched — `UpdatePropsCommand` restores exactly the
+keys it wrote (see `invertPatch()` in `tree.ts`) rather than putting back a captured `props`
+object; `RemoveNodeCommand` restores with `overwriteExisting: false`; `ReorderChildrenCommand`
+undoes with `{ strict: false }` so a changed child set reconciles instead of throwing. Restoring a
+snapshot also reverts everything that happened after it was captured, which in a session with two
+authors means silently deleting the other person's work. A command's `undo()` must also tolerate
+its target being gone (another client removed it) — that's a no-op, not an error. There are
+regression tests for each of these in `packages/core/tests/collaboration-gaps.test.ts`; if you add
+a command, add one there too.
+
+**Replaying a transaction is atomic.** `History.undo()/redo()` pop the transaction only *after* the
+replay succeeds, and roll the document back to its pre-replay state if any command throws
+(wrapping the cause in `EUGINE_HISTORY_ERROR`). Do not "simplify" this back to popping first — the
+original code left the document half-reverted and dropped the transaction from both stacks, putting
+the user's edit permanently out of reach of undo and redo alike.
+
+**Collaboration seams.** Commands serialize to `EugineOperation` (`operations.ts`) via
+`toOperation()`; `history.onCommit()` emits them per transaction. Remote operations come in through
+`editor.applyRemote()`, which bypasses history entirely — a remote edit must never land on the
+local undo stack. `DocumentStore` carries a monotonic `revision` and `editor.save()` sends it as
+`baseRevision` so adapters can reject a stale overwrite. If you add a mutating command, implement
+`toOperation()` on it (returning the ids it actually created, so every client agrees on node
+identity) and add the matching case to `applyOperation()`, or transactions containing it become
+untransmittable.
+
 **Implicit root component.** `createEditor()` auto-registers a permissive (`accepts: "*"`)
 component definition for whatever type the document's root node has, unless the host already
 registered one explicitly (see the constructor in `editor.ts`). Without this, `editor.insert()`
