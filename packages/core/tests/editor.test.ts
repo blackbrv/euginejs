@@ -200,9 +200,36 @@ describe("createEditor", () => {
     editor.insert("text", editor.getDocument().rootId);
     editor.storage.use(new MemoryStorageAdapter());
 
-    await editor.storage.save(editor.serialize(), "page-1");
+    const result = await editor.storage.save(editor.serialize(), { id: "page-1" });
+    expect(result.ok).toBe(true);
+
     const loaded = await editor.storage.load("page-1");
     expect(loaded).toEqual(editor.serialize());
+  });
+
+  it("rejects a save based on a revision the adapter has moved past", async () => {
+    const editor = buildBasicEditor();
+    editor.storage.use(new MemoryStorageAdapter());
+    editor.insert("text", editor.getDocument().rootId);
+
+    // A first client saves, establishing a revision on the server.
+    expect((await editor.save()).ok).toBe(true);
+    const staleRevision = editor.store.getRevision();
+
+    // A second client saves work of their own on top of it.
+    const other = buildBasicEditor();
+    other.storage.use(editor.storage);
+    other.insert("text", other.getDocument().rootId);
+    other.insert("text", other.getDocument().rootId);
+    expect((await other.save()).ok).toBe(true);
+
+    // The first client, still holding the old revision, must not silently win.
+    const conflicted = await editor.storage.save(editor.serialize(), { baseRevision: staleRevision });
+    expect(conflicted.ok).toBe(false);
+    if (!conflicted.ok) {
+      expect(conflicted.reason).toBe("conflict");
+      expect(conflicted.current).toBeDefined();
+    }
   });
 
   it("throws a clear error when no storage adapter is configured", async () => {
