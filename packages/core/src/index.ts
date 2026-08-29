@@ -10,7 +10,7 @@ export { EventBus } from "./events.js";
 export type { EugineEventMap, EventBusOptions, Listener, ListenerErrorHandler } from "./events.js";
 
 // Types / document model
-export { CURRENT_SCHEMA_VERSION } from "./types.js";
+export { CURRENT_SCHEMA_VERSION, documentRevision } from "./types.js";
 export type {
   ComponentDefinition,
   ComponentPropDefinition,
@@ -56,7 +56,7 @@ export type { CreateNodeOptions, MoveOptions, SubtreeSnapshot } from "./tree.js"
 
 // Document store
 export { DocumentStore } from "./document.js";
-export type { DocumentStoreEvents } from "./document.js";
+export type { ChangeOrigin, DocumentStoreEvents, SetDocumentOptions } from "./document.js";
 
 // Component registry
 export { ComponentRegistry } from "./registry.js";

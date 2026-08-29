@@ -45,6 +45,23 @@ export interface EugineDocument {
   schemaVersion: number;
   rootId: string;
   nodes: Record<string, EugineNode>;
+  /**
+   * Monotonic counter, incremented by DocumentStore on every write. It is a
+   * change counter, not a content hash — undo moves it forward like any other
+   * write. Its job is optimistic concurrency: a client sends the revision it
+   * based its edit on, and the server rejects the write if the stored document
+   * has moved on since. Without it, two clients saving the same page are pure
+   * last-write-wins and one of them silently loses a whole session of work.
+   *
+   * Optional so documents authored before this field existed still load; treat
+   * a missing value as 0 (see `documentRevision()`).
+   */
+  revision?: number;
+}
+
+/** The revision of a document, treating a pre-revision document as 0. */
+export function documentRevision(document: EugineDocument): number {
+  return document.revision ?? 0;
 }
 
 /** The canonical, versioned, on-disk/over-the-wire representation of a document. */
