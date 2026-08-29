@@ -1,6 +1,7 @@
 import { ComponentRegistry, getAncestors, getNode, type Editor, type EugineNode } from "eugine";
 import { renderToDom, type DomComponentRenderer, type DomRenderer } from "eugine/renderer";
 import { COMPONENT_SCHEMAS } from "./schema.js";
+import { applyNodeStyles } from "./styleFields.js";
 
 const NEW_COMPONENT_MIME = "application/x-eugine-new-component";
 const MOVE_NODE_MIME = "application/x-eugine-move-node";
@@ -21,6 +22,7 @@ function makeInteractive(el: HTMLElement, node: EugineNode, editor: Editor, onSe
   el.dataset.eugineId = node.id;
   el.dataset.eugineType = node.type;
   el.classList.add("eb-node");
+  applyNodeStyles(el, node.styles);
 
   el.addEventListener("click", (event) => {
     event.stopPropagation();

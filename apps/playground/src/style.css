@@ -556,9 +556,150 @@ button {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+.eb-select {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--ease),
+    box-shadow 140ms var(--ease);
+}
+
+.eb-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .eb-inspector-empty {
   color: var(--text-faint);
   font-size: 12px;
+}
+
+.eb-inspector-hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+/* ---------- Design panel ---------- */
+
+.eb-design-group {
+  margin-bottom: 4px;
+}
+
+.eb-design-group h4 {
+  margin: 14px 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.eb-color-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eb-color-swatch {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.eb-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+
+.eb-color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+.eb-color-text {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 140ms var(--ease),
+    box-shadow 140ms var(--ease);
+}
+
+.eb-color-text:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.eb-custom-style-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.eb-custom-style-prop,
+.eb-custom-style-value {
+  min-width: 0;
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 140ms var(--ease),
+    box-shadow 140ms var(--ease);
+}
+
+.eb-custom-style-prop:focus,
+.eb-custom-style-value:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.eb-custom-style-remove {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.eb-custom-style-remove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 /* ---------- Toasts ---------- */
