@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiStorageAdapter } from "@/lib/apiStorageAdapter";
 import { createAutosavePlugin } from "@/lib/autosavePlugin";
 import { mountCanvas, PALETTE_ITEMS, registerPaletteDrag } from "@/lib/canvas";
+import { showContextMenu } from "@/lib/contextMenu";
 import { renderEventLog, renderInspector, renderLayers } from "@/lib/panels";
 import { toComponentDefinitions } from "@/lib/schema";
 
@@ -36,11 +37,17 @@ export default function Studio() {
     );
 
     const onSelect = (id: string, additive: boolean) => editor.selection.select(id, { additive });
-    const canvas = mountCanvas(editor, canvasRef.current!, onSelect);
+    const onContextMenu = (id: string, clientX: number, clientY: number) => showContextMenu(editor, id, clientX, clientY, onSelect);
+    const canvas = mountCanvas(editor, canvasRef.current!, onSelect, onContextMenu);
+
+    const previewStyle = (id: string, property: string, value: string) => {
+      const el = canvas.renderer.getElement(id);
+      if (el instanceof HTMLElement) el.style.setProperty(property, value);
+    };
 
     const refreshPanels = () => {
-      renderLayers(editor, layersRef.current!, onSelect);
-      renderInspector(editor, inspectorRef.current!);
+      renderLayers(editor, layersRef.current!, onSelect, onContextMenu);
+      renderInspector(editor, inspectorRef.current!, previewStyle);
     };
 
     editor.events.on("document.change", () => {
@@ -78,6 +85,7 @@ export default function Studio() {
     log("editor.ready");
 
     return () => {
+      canvas.destroy();
       canvas.renderer.destroy();
       editor.destroy();
     };
