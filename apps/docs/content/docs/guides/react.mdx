@@ -1,0 +1,71 @@
+---
+title: React
+description: Mounting Eugine in a React application.
+---
+
+There is no React renderer, and you do not need one. `renderToDom()` returns a plain DOM `Node`,
+so React's job is only to own a container element and the editor's lifetime.
+
+```tsx
+"use client";
+
+import { useEffect, useRef } from "react";
+import { ComponentRegistry, createEditor } from "eugine";
+import { renderToDom, type DomComponentRenderer } from "eugine/renderer";
+
+export function Canvas() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const editor = createEditor({ components: [...] });
+    const registry = new ComponentRegistry<DomComponentRenderer>();
+    // register renderers...
+
+    const renderer = renderToDom(editor.getDocument(), container, { registry });
+    const offChange = editor.events.on("document.change", ({ document }) =>
+      renderer.update(document),
+    );
+    const offSelect = editor.selection.onSelectionChange(({ ids }) =>
+      renderer.setSelection(ids),
+    );
+
+    return () => {
+      offChange();
+      offSelect();
+      renderer.destroy();
+      editor.destroy();
+    };
+  }, []);
+
+  return <div ref={containerRef} />;
+}
+```
+
+The live demos on this site are this exact component.
+
+## Three things to get right
+
+**Do not run the renderer during SSR.** `renderToDom` touches `globalThis.document`. `useEffect`
+handles this; belt-and-braces is `next/dynamic` with `ssr: false`.
+
+**Clean up in the effect's return.** `renderer.destroy()` detaches everything the renderer created;
+`editor.destroy()` runs plugin teardown and clears listeners. Skipping either leaks across a hot
+reload or a route change.
+
+**Do not put the document in React state.** The document is already immutable and the renderer
+already patches surgically. Mirroring it into `useState` gives you a second source of truth and
+throws away the per-node update. Subscribe for *derived* UI instead:
+
+```tsx
+const [selected, setSelected] = useState<string[]>([]);
+useEffect(() => editor.selection.onSelectionChange(({ ids }) => setSelected(ids)), []);
+```
+
+## Strict Mode
+
+React 18+ Strict Mode mounts effects twice in development. Because the cleanup fully tears down
+the editor and renderer, the second mount starts from scratch — which is why the cleanup above is
+not optional.

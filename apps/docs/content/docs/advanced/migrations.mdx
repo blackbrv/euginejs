@@ -1,0 +1,53 @@
+---
+title: Migrations
+description: Moving documents forward when the schema changes.
+---
+
+Documents outlive the code that wrote them. `schemaVersion` on the envelope is how a document
+written last year loads into this year's build.
+
+```ts
+import { MigrationRegistry, createEditor } from "eugine";
+
+const migrations = new MigrationRegistry();
+
+migrations.register({
+  from: 1,
+  to: 2,
+  migrate(document) {
+    const nodes = { ...document.nodes };
+    for (const [id, node] of Object.entries(nodes)) {
+      if (node.type !== "text") continue;
+      const { body, ...rest } = node.props as { body?: unknown };
+      nodes[id] = { ...node, props: { ...rest, content: body } };
+    }
+    return { ...document, nodes };
+  },
+});
+
+const editor = createEditor({ migrations });
+```
+
+`loadDocument()` runs the chain from the document's version up to `CURRENT_SCHEMA_VERSION`. A gap
+in the chain throws `EUGINE_MIGRATION_FAILED` rather than loading a half-migrated document, and a
+registration cycle is caught after 1000 steps.
+
+## Writing one
+
+**Be pure.** Take a document, return a new one. Do not mutate the input, and do not reach for the
+editor — a migration runs before there is one.
+
+**Preserve structure.** The result is validated immediately afterwards. Rewriting props is safe;
+rewriting `children`/`parent` needs the same care as a tree operation.
+
+**Migrate forward only.** There is no down-migration, by design. To roll back, restore the older
+persisted document.
+
+<Callout type="info">
+  Loading a document whose `schemaVersion` differs from the supported one with *no*
+  `MigrationRegistry` throws rather than guessing. That is deliberate: silently loading a document
+  you cannot interpret is how content gets corrupted.
+</Callout>
+
+Test migrations against real fixtures — a serialized document captured from the previous version,
+loaded and validated. They are pure functions, so this is cheap.

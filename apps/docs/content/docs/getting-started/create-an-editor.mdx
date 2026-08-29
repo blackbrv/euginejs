@@ -1,0 +1,41 @@
+---
+title: Create an Editor
+description: Build an editor instance and make your first edits.
+---
+
+`createEditor()` wires together the document store, component registry, command/history system,
+selection state, and plugin runtime. It is the facade you build your UI around.
+
+<CodeFromFile file="first-editor" region="create" title="Creating an editor" />
+
+You now have a working editor with an empty document. Insert nodes into it:
+
+<CodeFromFile file="first-editor" region="insert" title="Inserting nodes" />
+
+`insert()` returns the new node's id. Every mutating method takes ids, never node objects — the
+document is flat and keyed by id, and holding a stale node object across an edit is a bug Eugine
+will not let you write.
+
+## Editing
+
+<CodeFromFile file="first-editor" region="edit" title="Updating props and styles" />
+
+`updateProps` merges by default, so you only pass the keys you are changing. Pass
+`{ merge: false }` to replace the whole object.
+
+## Undo and redo
+
+<CodeFromFile file="first-editor" region="history" />
+
+## Grouping edits
+
+A drag-and-drop operation is several commands — detach, reattach, reindex — but it should be
+*one* undo step. Wrap them in a transaction:
+
+<CodeFromFile file="first-editor" region="transaction" title="One user action, one undo step" />
+
+<Callout type="info">
+  The root node is an implicit container. `createEditor()` auto-registers a permissive definition
+  for whatever type the document root has, so inserting into a fresh document works with zero
+  registered components.
+</Callout>

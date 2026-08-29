@@ -1,0 +1,4 @@
+{
+  "title": "Core Concepts",
+  "pages": ["document-model", "commands", "history", "events", "serialization", "rendering"]
+}

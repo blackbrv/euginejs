@@ -1,0 +1,70 @@
+---
+title: Document Model
+description: A flat, immutable node map — and why it is flat.
+---
+
+```ts
+interface EugineDocument {
+  schemaVersion: number;
+  rootId: string;
+  nodes: Record<string, EugineNode>;
+  revision?: number;
+}
+```
+
+The tree is **flat**, not nested. Children are referenced by id:
+
+```ts
+interface EugineNode {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  styles?: Record<string, unknown>;
+  className?: string;
+  children: string[];
+  parent: string | null;
+  metadata?: Record<string, unknown>;
+  customData?: Record<string, unknown>;
+  locked?: boolean;
+  editable?: boolean;
+  hidden?: boolean;
+}
+```
+
+## Why flat matters
+
+Every tree operation returns a **new** document, but shallow-copies the `nodes` map and replaces
+only the entries it actually touched. Untouched nodes keep the exact same object reference across
+the operation.
+
+That reference equality is load-bearing, not incidental. The DOM renderer uses `previous === node`
+to decide what to rebuild, so editing one heading in a thousand-node document repaints one
+heading — and everything else keeps its scroll position, focus, and caret.
+
+It is also what makes concurrent editing tractable: merging two edits to different nodes is a map
+merge, not a tree diff.
+
+<Callout type="info">
+  If you write a custom tree operation, preserve this property. Give new object identity only to
+  the nodes you changed, or incremental rendering silently stops being incremental — still
+  correct, just no longer localized.
+</Callout>
+
+## Editor state is not document state
+
+Selection, viewport, drag state, and open panels are **not** in the document. They live on the
+editor (`editor.selection`) and are never persisted. This is what allows a document to render on a
+server with no editor runtime at all.
+
+## Integrity
+
+`validateDocument()` enforces the structural invariants: the root exists and has no parent, every
+node's map key matches its `id`, every child reference resolves, every child's `parent` pointer
+agrees with the node listing it, and no node is claimed by two parents. `DocumentStore.set()` runs
+it on every write.
+
+## Revision
+
+`revision` is a monotonic counter advanced on every store write. It is a change counter, not a
+content hash — undo moves it forward like any other write. Its job is optimistic concurrency; see
+[Storage](/docs/guides/storage).

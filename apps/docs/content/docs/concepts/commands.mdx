@@ -1,0 +1,63 @@
+---
+title: Commands
+description: Every mutation is an object, which is what makes history and collaboration possible.
+---
+
+Nothing mutates the document directly. Every change is a `Command`:
+
+```ts
+interface Command {
+  readonly name: string;
+  execute(store: DocumentStore): void;
+  undo(store: DocumentStore): void;
+  toOperation?(): EugineOperation | null;
+}
+```
+
+`Editor` methods are thin wrappers that validate, build a command, and hand it to history:
+
+```ts
+editor.insert(type, parentId, options);   // InsertNodeCommand
+editor.remove(id);                        // RemoveNodeCommand
+editor.move(id, parentId, index);         // MoveNodeCommand
+editor.reorder(parentId, orderedIds);     // ReorderChildrenCommand
+editor.updateProps(id, props);            // UpdatePropsCommand
+editor.updateStyles(id, styles);          // UpdateStylesCommand
+editor.duplicate(id);                     // DuplicateNodeCommand
+editor.wrap(id, wrapperType);             // WrapNodeCommand
+editor.unwrap(id);                        // UnwrapNodeCommand
+editor.pasteSubtree(snapshot, parentId);  // PasteSubtreeCommand
+```
+
+## Writing your own
+
+Two rules keep a command safe once more than one person is editing.
+
+**1. `undo()` computes an inverse; it never restores a snapshot.** Derive the inverse against the
+document *as it is at undo time*, and touch only what the command touched. `UpdatePropsCommand`
+restores exactly the keys it wrote and unsets exactly the keys it introduced — because putting
+back a captured `props` object would also erase every key added since, which in a shared session
+means silently deleting a colleague's work.
+
+**2. `undo()` tolerates its target being gone.** Another client may have removed the node. That is
+a no-op, not an error.
+
+```ts
+undo(store: DocumentStore): void {
+  const document = store.get();
+  if (!hasNode(document, this.id)) return; // already gone — nothing to undo
+  store.set(/* inverse computed against `document` */);
+}
+```
+
+`invertPatch()` and `reconcileOrder()` in `@eugine/core` exist for exactly this.
+
+## Serializing
+
+Implement `toOperation()` so your command can cross a network, returning the ids it actually
+created so every client agrees on node identity. A transaction containing a command that cannot
+serialize is not transmittable. See [Collaboration](/docs/guides/collaboration).
+
+```ts
+editor.runCommand(new MyCommand(id));
+```

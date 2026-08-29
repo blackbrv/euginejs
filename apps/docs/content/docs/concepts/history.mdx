@@ -1,0 +1,61 @@
+---
+title: History
+description: Transactions, atomic replay, and undo that is safe with a second author.
+---
+
+`History` is a transaction-aware undo/redo stack over commands.
+
+```ts
+editor.history.undo();
+editor.history.redo();
+editor.history.canUndo();
+editor.history.canRedo();
+editor.history.clear();
+```
+
+## Transactions
+
+A transaction groups any number of commands into exactly one undo step:
+
+<CodeFromFile file="first-editor" region="transaction" />
+
+Nested transactions flatten into the outer one, so a helper that opens a transaction is safe to
+call from inside another.
+
+## Replay is atomic
+
+If any command throws part-way through an undo, the document is restored to exactly where it
+started and **both stacks are left untouched**. The transaction is popped only after the replay
+succeeds.
+
+The failure this prevents is subtle and severe: pop-then-replay leaves the document half-reverted
+*and* drops the transaction from both stacks, putting the user's edit permanently out of reach of
+undo and redo alike. A failed replay raises `EUGINE_HISTORY_ERROR` with the original error as its
+`cause`.
+
+## Undo is scoped to the client
+
+With a `clientId`, `undo()` and `redo()` skip transactions authored elsewhere, so Ctrl+Z never
+reverts the edit a colleague just made. `canUndo()` reflects the same scoping, so a toolbar button
+greys out honestly.
+
+```ts
+const editor = createEditor({ clientId: "user-42" });
+```
+
+<Callout type="warn">
+  This is per-client scoping, not operational transformation. Undoing past a later remote edit
+  replays each command's inverse against the *current* document — safe, in that it will not clobber
+  a concurrent edit or throw, but it does not transform intent the way a CRDT or OT layer would.
+</Callout>
+
+## Observing
+
+```ts
+editor.history.onChange(({ transaction, kind }) => {
+  // kind: "execute" | "undo" | "redo" | "clear"
+});
+
+// Committed transactions, with their serializable operations.
+editor.history.onCommit(({ operations }) => { /* ship them */ });
+```

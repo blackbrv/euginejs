@@ -1,0 +1,58 @@
+---
+title: Serialization
+description: The versioned envelope, and validating JSON you did not write.
+---
+
+```ts
+interface SerializedDocument {
+  schemaVersion: number;
+  engine: "eugine";
+  engineVersion: string;
+  document: EugineDocument;
+}
+```
+
+<CodeFromFile file="save-and-load" region="serialize" />
+
+`serializeDocument()` validates before writing, and `loadDocument()` validates after reading and
+migrates if the schema version is behind. A structurally broken document fails at the boundary
+with `EUGINE_SERIALIZATION_FAILED` rather than surfacing as a confusing error deep inside the
+editor.
+
+## Validating untrusted JSON
+
+`JSON.parse`, `Response.json()` and `request.json()` are all typed `any` by TypeScript's own
+standard library, so `as SerializedDocument` there is an unchecked leap of faith. Use the real
+type guard:
+
+```ts
+import { isSerializedDocument } from "eugine";
+
+const parsed: unknown = JSON.parse(raw);
+if (!isSerializedDocument(parsed)) {
+  throw new Error("Not a Eugine document");
+}
+editor.load(parsed); // genuinely narrowed
+```
+
+Do this on every boundary — an API route body, a `localStorage` entry written by an older build, a
+`fetch` response.
+
+## Errors
+
+Every error Eugine throws is an `EugineError` with a stable `code`. Branch on the code, never the
+message:
+
+```ts
+try {
+  editor.insert("text", parentId);
+} catch (error) {
+  if (error instanceof EugineError && error.code === "EUGINE_INVALID_DROP") {
+    // show a rejection affordance
+  }
+}
+```
+
+`EUGINE_DOCUMENT_INVALID`, `EUGINE_NODE_NOT_FOUND`, `EUGINE_COMPONENT_NOT_REGISTERED`,
+`EUGINE_COMPONENT_ALREADY_REGISTERED`, `EUGINE_INVALID_DROP`, `EUGINE_SERIALIZATION_FAILED`,
+`EUGINE_MIGRATION_FAILED`, `EUGINE_RENDER_FAILED`, `EUGINE_PLUGIN_ERROR`, `EUGINE_HISTORY_ERROR`.

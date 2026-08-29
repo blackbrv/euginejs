@@ -1,0 +1,47 @@
+---
+title: Events
+description: What the editor emits, and the ordering you can rely on.
+---
+
+```ts
+const off = editor.events.on("node.create", ({ node }) => { /* ... */ });
+off(); // unsubscribe
+```
+
+## The event map
+
+| Event | Payload |
+| --- | --- |
+| `editor.ready` / `editor.destroy` | — |
+| `document.change` | `{ document, previous, origin? }` |
+| `document.load` | `{ document }` |
+| `document.remote` | `{ applied, dropped }` |
+| `node.create` | `{ node }` |
+| `node.delete` | `{ id }` |
+| `node.move` | `{ id, parentId }` |
+| `node.update` | `{ id }` |
+| `node.select` | `{ ids, previous }` |
+| `history.undo` / `history.redo` | `{ transaction }` |
+| `component.register` / `component.unregister` | `{ type }` |
+
+## Ordering
+
+`DocumentStore.set()` emits `document.change` synchronously *inside* `history.execute()`, before
+the editor emits its own higher-level event. The store event always precedes the editor-level
+event for the same operation.
+
+Selection is pruned before `document.change` fires, so a listener that reads the current selection
+never observes an id the document no longer contains.
+
+## Change origin
+
+`document.change` carries an `origin` telling local edits from remote ones:
+
+<CodeFromFile file="collaboration" region="origin" />
+
+## Listeners are isolated
+
+A listener that throws does not stop the ones registered after it — otherwise one bad subscriber
+could stop the renderer from ever hearing about a change, leaving the user editing a canvas that
+no longer reflects the document. The error is not swallowed: it goes to an optional
+`onListenerError`, or is rethrown from a microtask so it still reaches `window.onerror`.

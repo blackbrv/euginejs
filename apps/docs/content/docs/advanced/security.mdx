@@ -1,0 +1,64 @@
+---
+title: Security
+description: Why document JSON is data, never code.
+---
+
+## The registry is the boundary
+
+A document names component types as strings. Eugine resolves those strings **only** against a
+`ComponentRegistry` you construct in your own code:
+
+```ts
+const definition = registry.tryGet(node.type);
+```
+
+There is no dynamic `import()`, no `eval`, no lookup of a global by name, and no path derived from
+document content. A malicious document can name a type that does not exist — and get a
+placeholder, an omission, or a thrown error, depending on `onMissingComponent`. It cannot cause
+code to load.
+
+<Callout type="warn">
+  Preserve this in any custom renderer. Resolving `node.type` through anything other than a
+  registry you built — a dynamic import, a lookup in a module namespace object — turns document
+  JSON into an execution vector.
+</Callout>
+
+## Validate at every boundary
+
+`JSON.parse`, `Response.json()` and `request.json()` are typed `any`. Narrow with the real guard
+before trusting the shape:
+
+```ts
+import { isSerializedDocument } from "eugine";
+
+const body: unknown = await request.json();
+if (!isSerializedDocument(body)) {
+  return Response.json({ error: "Not a Eugine document." }, { status: 400 });
+}
+```
+
+Structural validation (`validateDocument`) runs on load and on every store write, so a document
+with orphaned children or a node claimed by two parents is rejected rather than half-rendered.
+
+## Escaping in renderers
+
+Props are attacker-controlled in any multi-tenant product. Interpolating one into HTML without
+escaping is an XSS hole:
+
+```ts
+import { escapeAttribute, escapeHtml, sanitizeUrl } from "eugine/server";
+```
+
+`sanitizeUrl` rejects `javascript:` and other script-bearing schemes — apply it to anything that
+becomes an `href`, `src`, or `action`.
+
+## Styles
+
+`styles` is a free-form object written into inline styles by most host renderers. If you accept
+documents from untrusted authors, allowlist the properties you render rather than passing the
+object through wholesale.
+
+## Plugins are trusted
+
+`editor.use()` runs plugin code with your application's privileges. It is not a sandbox. Never
+load a plugin named or supplied by document content.

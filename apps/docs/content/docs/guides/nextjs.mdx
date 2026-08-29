@@ -1,0 +1,79 @@
+---
+title: Next.js
+description: An editor in a Client Component, published pages on the server.
+---
+
+The natural split in a Next.js app maps onto Eugine's package split exactly.
+
+```text
+app/
+├── editor/page.tsx      "use client" — the editor, @eugine/renderer
+├── preview/page.tsx     Server Component — @eugine/renderer-server
+└── api/document/route.ts  storage adapter backend
+```
+
+## The editor route
+
+A Client Component, following [React](/docs/guides/react). The editor runtime never reaches the
+server bundle.
+
+## The published route
+
+A Server Component renders the same document with no editor runtime at all:
+
+```tsx
+import { renderToString } from "eugine/server";
+import { htmlRegistry } from "@/lib/htmlRegistry";
+import { getPublishedDocument } from "@/lib/store";
+
+export default async function PreviewPage() {
+  const saved = await getPublishedDocument();
+  if (!saved) return <p>Nothing published yet.</p>;
+
+  const html = renderToString(saved.document, { registry: htmlRegistry });
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+}
+```
+
+<Callout type="info">
+  `renderToString` escapes text and attributes and sanitizes URLs, and resolves every node type
+  through your registry rather than anything named in the document. The `dangerouslySetInnerHTML`
+  here is rendering output you generated, not user HTML. See [Security](/docs/advanced/security).
+</Callout>
+
+## The API route
+
+Validate the body — `request.json()` is typed `any` — and enforce the revision check:
+
+```ts
+import { documentRevision, isSerializedDocument } from "eugine";
+
+export async function POST(request: Request) {
+  const body: unknown = await request.json();
+  if (typeof body !== "object" || body === null) {
+    return Response.json({ error: "Body must be an object." }, { status: 400 });
+  }
+
+  const { document, baseRevision } = body as { document?: unknown; baseRevision?: unknown };
+  if (!isSerializedDocument(document)) {
+    return Response.json({ error: "Not a Eugine document." }, { status: 400 });
+  }
+
+  const stored = await getPublishedDocument();
+  if (stored && typeof baseRevision === "number" &&
+      documentRevision(stored.document) > baseRevision) {
+    return Response.json({ error: "Stale write.", current: stored }, { status: 409 });
+  }
+
+  await setPublishedDocument(document);
+  return Response.json({ ok: true, revision: documentRevision(document.document) });
+}
+```
+
+A complete working version of all three is in `examples/kitchen-sink` in the repository.
+
+## Module-scope state
+
+Next.js compiles Route Handlers and Server Component pages into separate bundle layers, each with
+its own module registry — a module-scoped `let` gets a distinct instance per layer. Anchor shared
+process state on `globalThis`, the same pattern used for a Prisma client singleton.

@@ -8,3 +8,53 @@ editor, dashboard builder, or form builder is built *on top of* — a document m
 registry, a command/history system, and a rendering architecture.
 
 > Eugine gives developers the engine. Developers build the editor.
+
+<EugineDemo demo="basics" />
+
+That is a real editor, running in this page. Undo and redo drive the same `History` your
+application would use.
+
+## Why a document model, not HTML
+
+The single most important rule in the codebase:
+
+> **The document model must not depend on the editor UI.**
+
+An `EugineDocument` is a plain, JSON-serializable tree — flat, keyed by node id, so a structural
+change only touches the nodes it actually affects. It never contains editor-only state: no
+selection, no viewport, no drag state, no open panels. Only persisted content.
+
+That separation is what lets the same document render through a browser DOM renderer inside your
+editor and through a server-safe HTML renderer in a Next.js Server Component, with no editor
+runtime, no `window`, and deterministic output for identical input.
+
+## Architecture
+
+```text
+@eugine/core  (no deps; no DOM, no React)
+   ├─ @eugine/renderer          browser DOM renderer
+   └─ @eugine/renderer-server   SSR-safe HTML renderer
+        └─ eugine               re-exports core; eugine/renderer, eugine/server subpaths
+```
+
+| Package | What it is |
+| --- | --- |
+| `eugine` | Convenience package most apps install. Re-exports core, plus `eugine/renderer` and `eugine/server`. |
+| `@eugine/core` | The engine: document model, registry, commands, history, selection, serialization, plugins, storage interface. |
+| `@eugine/renderer` | Browser DOM renderer with per-node incremental updates. |
+| `@eugine/renderer-server` | Deterministic HTML string renderer with zero browser API dependencies. |
+
+## Security boundary
+
+Component types resolve strictly against a `ComponentRegistry` you build. A renderer never
+dynamically imports or executes anything named inside a document. Untrusted document JSON is
+**data, never code**.
+
+## What's here
+
+<Cards>
+  <Card title="Getting Started" href="/docs/getting-started/installation" description="Install, create an editor, register components, save a document." />
+  <Card title="Core Concepts" href="/docs/concepts/document-model" description="Nodes, commands, history, events, serialization, rendering." />
+  <Card title="Guides" href="/docs/guides/react" description="React, Next.js, SSR, storage, and multi-user collaboration." />
+  <Card title="API Reference" href="/docs/api" description="Generated from source for every package." />
+</Cards>

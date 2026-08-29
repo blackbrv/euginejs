@@ -1,0 +1,43 @@
+---
+title: Save a Document
+description: Serialize, persist through a storage adapter, and survive a second editor.
+---
+
+## Serializing
+
+<CodeFromFile file="save-and-load" region="serialize" title="Serialize and load" />
+
+The envelope carries a `schemaVersion` so a document written by an older build can be migrated
+forward on load. See [Migrations](/docs/advanced/migrations).
+
+## Storage adapters
+
+Eugine has no opinion about where documents live. You implement `StorageAdapter`; the library
+ships an in-memory one for tests and prototyping.
+
+<CodeFromFile file="save-and-load" region="adapter" />
+
+## Saving
+
+<Callout type="warn">
+  Prefer `editor.save()` over `editor.storage.save(editor.serialize())`. It attaches the revision
+  the document was based on, which is what lets an adapter reject a stale overwrite. Forgetting it
+  is what makes two people editing one page silently last-write-wins.
+</Callout>
+
+<CodeFromFile file="save-and-load" region="save" title="A save that can be rejected" />
+
+`SaveResult` is a discriminated union, so the conflict branch is not optional:
+
+```ts
+type SaveResult =
+  | { ok: true; revision?: number }
+  | { ok: false; reason: "conflict"; current?: SerializedDocument };
+```
+
+Read the current revision directly when you need it:
+
+<CodeFromFile file="save-and-load" region="revision" />
+
+Autosave, conflict handling, and what your server has to enforce are covered in
+[Storage](/docs/guides/storage).

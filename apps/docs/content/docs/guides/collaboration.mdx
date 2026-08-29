@@ -1,0 +1,66 @@
+---
+title: Collaboration
+description: Multiple people editing one document, without anyone losing work.
+---
+
+Eugine ships no transport, but it gives you the seams to build one — and, more importantly, it is
+safe to have more than one author. Two things make that work.
+
+## Operations are the wire format
+
+Every committed transaction serializes to plain JSON data. **Never ship the whole document**; that
+is last-write-wins by another name.
+
+<CodeFromFile file="collaboration" region="client" title="A collaboration-aware editor" />
+
+<CodeFromFile file="collaboration" region="outbound" title="Outbound" />
+
+<CodeFromFile file="collaboration" region="inbound" title="Inbound" />
+
+`applyRemote()` deliberately does **not** touch the undo stack. A remote edit landing there means
+the local user's next Ctrl+Z reverts a colleague's work. It also drops — rather than throws on —
+operations whose target no longer exists, since a remote op arriving for a node this client just
+deleted is an ordinary race. Aborting would take the sync loop down along with everything queued
+behind it. Dropped operations come back in the result if you care.
+
+Applying the same operation twice is a no-op, so a transport that redelivers is safe.
+
+## Saves are versioned
+
+Use `editor.save()` rather than `editor.storage.save(editor.serialize())`. See
+[Storage](/docs/guides/storage).
+
+<CodeFromFile file="save-and-load" region="save" />
+
+## Presence
+
+Selection is deliberately separate from document state, which gives presence a clean home that
+never pollutes what gets persisted:
+
+<CodeFromFile file="collaboration" region="presence" />
+
+## Node ids
+
+Pass a client-scoped `idFactory`. Two browsers minting ids from independent `Math.random()` calls
+can collide, and `insertNode()` throws on a duplicate id — a hard failure in the sync loop, not a
+cosmetic problem.
+
+## Undo with two authors
+
+`clientId` scopes undo to this user's own edits. Under the hood, every command's `undo()` computes
+an inverse against the *current* document and touches only what that command touched, so undoing
+never silently reverts a concurrent edit to a different key on the same node.
+
+<Callout type="warn">
+  This is not operational transformation. Undoing past a later remote edit replays inverses against
+  the current document — safe, in that it will not clobber or throw, but it does not transform
+  intent the way a CRDT or OT layer would. The operation stream is exactly the input either would
+  consume, so that choice stays open.
+</Callout>
+
+## What you still have to build
+
+- **A transport.** WebSocket, WebRTC, or a polling endpoint.
+- **Ordering.** Operations are applied in the order they arrive. A server that assigns a sequence
+  is the simplest way to make that deterministic.
+- **The server-side revision check.** Without it, versioned saves prove nothing.

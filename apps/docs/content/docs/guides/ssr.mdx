@@ -1,0 +1,45 @@
+---
+title: Server Rendering
+description: Turning a document into HTML with no editor runtime.
+---
+
+`@eugine/renderer-server` renders an `EugineDocument` to a deterministic HTML string. It has no
+browser API dependencies — its TypeScript config excludes the `DOM` lib entirely, so a `window`
+reference is a compile error, not a production incident.
+
+<CodeFromFile file="rendering" region="server" />
+
+Identical input produces byte-identical output, which makes the result safe to cache, diff, and
+snapshot-test.
+
+## Escaping
+
+The package exports its sanitizers so custom renderers can reuse them:
+
+```ts
+import { attributesToHtml, escapeAttribute, escapeHtml, sanitizeUrl } from "eugine/server";
+
+const render: HtmlComponentRenderer = (props, childrenHtml) => {
+  const href = sanitizeUrl(String(props.href ?? ""));
+  return `<a href="${escapeAttribute(href)}">${escapeHtml(String(props.label ?? ""))}</a>`;
+};
+```
+
+`sanitizeUrl` rejects `javascript:` and other script-bearing schemes. If you interpolate a prop
+into HTML without one of these, you have written an XSS hole — document props are attacker-
+controlled data in any multi-tenant product.
+
+## Deployment shape
+
+The renderer runtime and the editor runtime are different deployment targets. A published-pages
+service can depend on `@eugine/renderer-server` alone and never ship a byte of editor code:
+
+```bash
+npm install @eugine/renderer-server
+```
+
+## Keeping the two renderers honest
+
+Both renderers consume the same document, so it is worth asserting they agree. The repository's
+cross-package test builds a document through the editor and compares server HTML against DOM
+output — a cheap guard against the two registries drifting apart.

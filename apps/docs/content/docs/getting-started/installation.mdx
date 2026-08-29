@@ -1,0 +1,37 @@
+---
+title: Installation
+description: Install Eugine and pick the packages you actually need.
+---
+
+Most applications install the convenience package:
+
+```bash
+npm install eugine
+```
+
+That gives you the engine plus both renderers behind subpath exports:
+
+```ts
+import { createEditor } from "eugine";          // the engine
+import { renderToDom } from "eugine/renderer";  // browser
+import { renderToString } from "eugine/server"; // SSR
+```
+
+## Installing packages individually
+
+Every package is publishable and consumable on its own. Install only `@eugine/core` if you are
+writing your own renderer, or only `@eugine/renderer-server` in a service that renders published
+pages and never runs an editor.
+
+```bash
+npm install @eugine/core @eugine/renderer-server
+```
+
+## Requirements
+
+- **Node.js 18.18 or newer** for the `@eugine/*` packages themselves.
+- **TypeScript 5.x** if you are using types. Every package ships ESM + CJS builds with full
+  declarations and an explicit `exports` map, so there is no default-export ambiguity.
+
+Eugine has **no runtime dependencies**. `@eugine/core` does not import React, the DOM, or any
+styling library.

@@ -1,0 +1,93 @@
+---
+title: Storage
+description: Adapters, autosave, and the revision check that stops silent overwrites.
+---
+
+## The adapter interface
+
+```ts
+interface StorageAdapter {
+  save(document: SerializedDocument, options?: SaveOptions): Promise<SaveResult | void> | SaveResult | void;
+  load(id?: string): Promise<SerializedDocument | undefined> | SerializedDocument | undefined;
+}
+```
+
+Returning nothing from `save` counts as success, so a trivial adapter stays trivial.
+
+```ts
+interface SaveOptions {
+  id?: string;
+  baseRevision?: number;
+}
+```
+
+## Optimistic concurrency
+
+<Callout type="warn">
+  An adapter that ignores `baseRevision` is last-write-wins. Two people editing one page means
+  whoever saves second silently erases the other's entire session.
+</Callout>
+
+Honour it:
+
+```ts
+class ApiStorageAdapter implements StorageAdapter {
+  async save(document: SerializedDocument, options: SaveOptions = {}): Promise<SaveResult> {
+    const res = await fetch("/api/document", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ document, baseRevision: options.baseRevision }),
+    });
+
+    if (res.status === 409) {
+      const body: unknown = await res.json();
+      const current = /* validate with isSerializedDocument */ undefined;
+      return { ok: false, reason: "conflict", current };
+    }
+    if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+    return { ok: true };
+  }
+
+  async load() { /* ... */ }
+}
+```
+
+**The check must be enforced server-side.** A client-side comparison proves nothing — the client
+holding the stale revision is precisely the one that cannot tell it is stale.
+
+## Autosave
+
+```ts
+const autosave = createAutosave(editor.store, (document) => save(document), {
+  debounceMs: 1000,
+  onError: (error) => reportSaveFailure(error),
+});
+```
+
+The returned handle is callable for backwards compatibility, and carries the pieces you need to
+guarantee nothing is lost on the way out:
+
+```ts
+autosave.isPending();        // a change is waiting on the debounce
+await autosave.flush();      // write it now — for beforeunload / unmount
+await autosave.stop();       // stop watching; flushes by default
+```
+
+<Callout type="info">
+  `stop()` **flushes** pending work rather than discarding it. Wiring a disposer to a component
+  unmount is the normal thing to do, and closing the editor a beat after the user's last edit must
+  not be what loses that edit. Pass `flushOnStop: false` only if you genuinely want it dropped.
+</Callout>
+
+## As a plugin
+
+```ts
+export function autosavePlugin(save: (d: EugineDocument) => Promise<void>): EuginePlugin<Editor> {
+  let handle: AutosaveHandle | null = null;
+  return {
+    name: "autosave",
+    install(editor) { handle = createAutosave(editor.store, save, { debounceMs: 1500 }); },
+    destroy() { void handle?.stop(); handle = null; },
+  };
+}
+```

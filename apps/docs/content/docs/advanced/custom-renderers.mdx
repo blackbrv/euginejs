@@ -1,0 +1,47 @@
+---
+title: Custom Renderers
+description: Targeting something other than the DOM or an HTML string.
+---
+
+A renderer needs three things: walk the tree from `rootId`, resolve each node's `type` through a
+registry, and respect `hidden`.
+
+```ts
+import { ComponentRegistry, getNode, type EugineDocument } from "eugine";
+
+type CanvasRenderer = (props: NodeProps, children: string[]) => string;
+
+export function renderToText(
+  document: EugineDocument,
+  registry: ComponentRegistry<CanvasRenderer>,
+): string {
+  function renderNode(id: string): string {
+    const node = getNode(document, id);
+    if (node.hidden) return "";
+
+    const children = node.children.map(renderNode);
+    const definition = registry.tryGet(node.type);
+    if (!definition?.render) return children.join("");
+
+    return definition.render(node.props, children);
+  }
+
+  return renderNode(document.rootId);
+}
+```
+
+## Rules to preserve
+
+**Resolve types only through the registry.** Never `import()` or `eval` anything named inside
+document data. This is the boundary described in [Security](/docs/advanced/security), and a custom
+renderer is exactly where it tends to get broken.
+
+**Handle a missing definition deliberately.** Follow the built-in `onMissingComponent` convention:
+`"placeholder"`, `"omit"`, or `"throw"`.
+
+**Use reference equality for incremental updates.** Tree operations give new object identity only
+to nodes they touched, so `previous === node` is a cheap and reliable "did this change?" check —
+that is precisely how the DOM renderer avoids rebuilding the world.
+
+**Escape everything** if your target is a text format. `eugine/server` exports `escapeHtml`,
+`escapeAttribute`, `attributesToHtml` and `sanitizeUrl` for reuse.

@@ -1,0 +1,52 @@
+---
+title: Plugins
+description: Packaging behaviour without adding it to core.
+---
+
+```ts
+interface EuginePlugin<TEditor = unknown> {
+  name: string;
+  install?(editor: TEditor): void;
+  initialize?(editor: TEditor): void;
+  ready?(editor: TEditor): void;
+  destroy?(editor: TEditor): void;
+}
+```
+
+The lifecycle runs `install` → `initialize` → `ready` → `destroy`. A plugin registered after the
+editor is already ready has its `ready` called immediately.
+
+```ts
+const editor = createEditor({ plugins: [autosavePlugin(save)] });
+editor.use(anotherPlugin());
+```
+
+If a plugin throws during install, it is rolled back out of the registry and the error is wrapped
+in `EUGINE_PLUGIN_ERROR` with the original as `cause`. Registering the same `name` twice throws.
+
+## Writing one
+
+Hold your subscriptions and release them in `destroy`:
+
+```ts
+export function selectionLogger(): EuginePlugin<Editor> {
+  let off: (() => void) | null = null;
+  return {
+    name: "selection-logger",
+    install(editor) {
+      off = editor.events.on("node.select", ({ ids }) => console.debug("selected", ids));
+    },
+    destroy() {
+      off?.();
+      off = null;
+    },
+  };
+}
+```
+
+<Callout type="warn">
+  Installing a plugin gives its code execution privileges in your application. Plugins are trusted
+  dependencies, not a sandboxed extension format. Do not load one from untrusted input.
+</Callout>
+
+Collaboration, autosave, keyboard shortcuts, and analytics all belong here rather than in core.

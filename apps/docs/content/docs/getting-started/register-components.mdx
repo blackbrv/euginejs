@@ -1,0 +1,64 @@
+---
+title: Register Components
+description: Declare what your editor can build, and the rules for where things go.
+---
+
+A `ComponentDefinition` describes one component type: its drop rules, its prop defaults, and the
+metadata your property panels read.
+
+```ts
+editor.registerComponent({
+  type: "columns",
+  label: "Columns",
+  category: "Layout",
+  accepts: ["column"],   // only columns may be dropped inside
+  maxChildren: 4,
+  defaults: {
+    props: { gap: 16 },
+    styles: { display: "grid" },
+  },
+  props: [
+    { name: "gap", label: "Gap", type: "number", defaultValue: 16 },
+  ],
+});
+```
+
+## Drop rules
+
+`accepts` governs what may be nested where, and is enforced *before* a command is ever built:
+
+| Value | Meaning |
+| --- | --- |
+| `"*"` | Accepts any child type. The default. |
+| `"none"` | A leaf. Nothing may be dropped inside. |
+| `["a", "b"]` | Only these types. |
+
+`maxChildren` caps the count. A violation throws `EUGINE_INVALID_DROP` — nothing is written to the
+document and nothing lands on the undo stack.
+
+```ts
+if (editor.registry.canAcceptChild({
+  parentType: "columns",
+  childType: "heading",
+  currentChildCount: 2,
+})) {
+  // safe to show a drop indicator
+}
+```
+
+Use `canAcceptChild()` to drive drag affordances, and let `insert()`/`move()` do the enforcing.
+
+## Node flags
+
+Three flags on a node change how the editor and renderers treat it:
+
+- **`locked`** — cannot be deleted, moved, or retyped by commands. `remove()` and `move()` throw.
+- **`hidden`** — retained in the document, excluded from render output.
+- **`editable`** — content may be edited in place. Defaults to true.
+
+## Renderers are registered separately
+
+A component's *editor* definition is not its *renderer* definition. The two renderers take
+incompatible function shapes — the DOM renderer returns a `Node`, the server renderer returns a
+`string` — so you build a separate `ComponentRegistry<T>` per rendering context. See
+[Rendering](/docs/concepts/rendering).

@@ -1,0 +1,4 @@
+{
+  "title": "Advanced",
+  "pages": ["plugins", "custom-renderers", "migrations", "security"]
+}
