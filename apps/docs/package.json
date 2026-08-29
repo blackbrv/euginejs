@@ -5,8 +5,10 @@
   "description": "The Eugine documentation site: guides, concepts, a generated API reference, and live in-page editors built on the library itself.",
   "scripts": {
     "dev": "next dev -p 3003",
+    "prebuild": "npm run api",
     "build": "next build",
     "start": "next start -p 3003",
+    "api": "typedoc && node scripts/api-frontmatter.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -26,6 +28,9 @@
     "tailwindcss": "^4.1.0",
     "@tailwindcss/postcss": "^4.1.0",
     "postcss": "^8.4.47",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-frontmatter": "^1.3.0",
+    "typedoc-plugin-markdown": "^4.13.0",
     "typescript": "^5.6.3"
   },
   "engines": {

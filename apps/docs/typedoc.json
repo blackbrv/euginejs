@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-frontmatter"],
+  "entryPointStrategy": "expand",
+  "entryPoints": [
+    "../../packages/core/src/index.ts",
+    "../../packages/renderer/src/index.ts",
+    "../../packages/renderer-server/src/index.ts",
+    "../../packages/eugine/src/index.ts"
+  ],
+  "tsconfig": "./typedoc.tsconfig.json",
+  "out": "./content/docs/api",
+  "fileExtension": ".mdx",
+  "entryFileName": "index",
+  "readme": "none",
+  "githubPages": false,
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "useCodeBlocks": true,
+  "expandObjects": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "frontmatterGlobals": {
+    "_generated": true
+  },
+  "textContentMappings": {
+    "title.indexPage": "API Reference",
+    "title.memberPage": "{name}"
+  }
+}
