@@ -68,6 +68,16 @@ export type {
 export { DocumentStore } from "./document.js";
 export type { ChangeOrigin, DocumentStoreEvents, SetDocumentOptions } from "./document.js";
 
+// Operations — the serializable wire format for collaboration
+export { applyOperation, applyOperations, isEugineOperation } from "./operations.js";
+export type {
+  ApplyOperationOptions,
+  ApplyOperationsResult,
+  EugineOperation,
+  EugineOperationType,
+  OperationConflictPolicy,
+} from "./operations.js";
+
 // Component registry
 export { ComponentRegistry } from "./registry.js";
 export type { DropCheckContext } from "./registry.js";
