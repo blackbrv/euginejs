@@ -31,6 +31,8 @@ export {
   createEmptyDocument,
   createNode,
   duplicateSubtree,
+  invertPatch,
+  reconcileOrder,
   getAncestors,
   getChildren,
   getNode,
@@ -52,7 +54,15 @@ export {
   walk,
   wrapNode,
 } from "./tree.js";
-export type { CreateNodeOptions, MoveOptions, SubtreeSnapshot } from "./tree.js";
+export type {
+  CreateNodeOptions,
+  IdFactory,
+  MoveOptions,
+  ReorderOptions,
+  RestoreSubtreeOptions,
+  SubtreeSnapshot,
+  UpdateNodeDataOptions,
+} from "./tree.js";
 
 // Document store
 export { DocumentStore } from "./document.js";

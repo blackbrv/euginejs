@@ -21,9 +21,20 @@ export interface CreateNodeOptions {
   hidden?: boolean;
 }
 
-export function createNode(type: string, options: CreateNodeOptions = {}): EugineNode {
+/**
+ * Mints new node ids. Every id-generating tree function takes one so a
+ * collaborative host can hand out client-scoped ids (`"c3_17"`, `"c9_17"`)
+ * rather than relying on two browsers' independent `Math.random()` never
+ * colliding — `insertNode()` throws on a duplicate id, so a collision is a
+ * hard failure in the sync loop, not a cosmetic problem.
+ */
+export type IdFactory = () => string;
+
+const defaultIdFactory: IdFactory = () => createId("node");
+
+export function createNode(type: string, options: CreateNodeOptions = {}, idFactory: IdFactory = defaultIdFactory): EugineNode {
   return {
-    id: options.id ?? createId("node"),
+    id: options.id ?? idFactory(),
     type,
     props: options.props ?? {},
     styles: options.styles,
@@ -44,6 +55,7 @@ export function createEmptyDocument(rootType = "root"): EugineDocument {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     rootId: root.id,
     nodes: { [root.id]: root },
+    revision: 0,
   };
 }
 
@@ -141,6 +153,22 @@ export function captureSubtree(document: EugineDocument, id: string): Record<str
   return snapshot;
 }
 
+export interface RestoreSubtreeOptions {
+  index?: number;
+  /**
+   * Whether a snapshot node replaces a node with the same id that is already
+   * live in the document. Defaults to true (the plain "paste this subtree in"
+   * behaviour).
+   *
+   * Undo passes false. A captured snapshot is a photograph of the past, and
+   * spreading it wholesale over the current nodes map is how an undo silently
+   * reverts edits that happened *after* the snapshot was taken — someone
+   * else's edits, in a collaborative session. With false, restore fills in
+   * only what is genuinely missing and leaves any live node alone.
+   */
+  overwriteExisting?: boolean;
+}
+
 /**
  * Re-attaches a previously captured subtree (see captureSubtree) back into
  * the document under `parentId` at `index`. Used to undo node removal.
@@ -150,11 +178,30 @@ export function restoreSubtree(
   snapshot: Record<string, EugineNode>,
   rootId: string,
   parentId: string,
-  index?: number,
+  indexOrOptions?: number | RestoreSubtreeOptions,
 ): EugineDocument {
-  const nodes = { ...document.nodes, ...snapshot };
+  const options: RestoreSubtreeOptions =
+    typeof indexOrOptions === "number" || indexOrOptions === undefined ? { index: indexOrOptions } : indexOrOptions;
+  const { index, overwriteExisting = true } = options;
+
+  const nodes = { ...document.nodes };
+  for (const [id, node] of Object.entries(snapshot)) {
+    if (!overwriteExisting && nodes[id]) continue;
+    nodes[id] = node;
+  }
+
   const parent = nodes[parentId];
   if (!parent) throw nodeNotFound(parentId);
+
+  // Restoring must be idempotent: the same operation can arrive twice over a
+  // network, and an undo can race a remote re-creation of the same id. If the
+  // subtree root is already attached anywhere, re-listing it as a child here
+  // would give it two parents and fail validateDocument().
+  const liveRoot = document.nodes[rootId];
+  const alreadyAttached =
+    parent.children.includes(rootId) ||
+    (liveRoot?.parent != null && Boolean(nodes[liveRoot.parent]?.children.includes(rootId)));
+  if (alreadyAttached) return { ...document, nodes };
 
   const children = parent.children.slice();
   const at = index === undefined ? children.length : Math.max(0, Math.min(index, children.length));
@@ -217,32 +264,128 @@ export function moveNode(document: EugineDocument, id: string, newParentId: stri
   return { ...document, nodes };
 }
 
-export function reorderChildren(document: EugineDocument, parentId: string, orderedChildIds: string[]): EugineDocument {
+/**
+ * Projects a desired child order onto whatever children a parent actually has
+ * right now: ids that no longer exist are dropped, and children that appeared
+ * since (a sibling another user just inserted) are kept, appended in their
+ * current relative order.
+ *
+ * This is what makes a reorder safely undoable. The strict form below throws
+ * when the child set has changed, which is right for a direct API call — a
+ * stale order there is a bug worth surfacing — but fatal during undo, where
+ * the set having changed is expected and throwing strands the document
+ * half-reverted.
+ */
+export function reconcileOrder(currentChildIds: string[], desiredOrder: string[]): string[] {
+  const current = new Set(currentChildIds);
+  const kept = desiredOrder.filter((id) => current.has(id));
+  const placed = new Set(kept);
+  const appended = currentChildIds.filter((id) => !placed.has(id));
+  return [...kept, ...appended];
+}
+
+export interface ReorderOptions {
+  /**
+   * When true (the default), `orderedChildIds` must be exactly the parent's
+   * current children, reordered, or the call throws. When false, the order is
+   * reconciled against the live child set instead — see reconcileOrder().
+   */
+  strict?: boolean;
+}
+
+export function reorderChildren(
+  document: EugineDocument,
+  parentId: string,
+  orderedChildIds: string[],
+  options: ReorderOptions = {},
+): EugineDocument {
   const parent = getNode(document, parentId);
   const currentSet = new Set(parent.children);
   const nextSet = new Set(orderedChildIds);
-  if (currentSet.size !== nextSet.size || [...currentSet].some((id) => !nextSet.has(id))) {
+  const matches = currentSet.size === nextSet.size && ![...currentSet].some((id) => !nextSet.has(id));
+
+  if (!matches && options.strict !== false) {
     throw invalidDocument("reorderChildren must be given exactly the current child ids, reordered.", {
       parentId,
     });
   }
+
+  const children = matches ? orderedChildIds.slice() : reconcileOrder(parent.children, orderedChildIds);
   const nodes = cloneNodesMap(document);
-  nodes[parentId] = { ...parent, children: orderedChildIds.slice() };
+  nodes[parentId] = { ...parent, children };
   return { ...document, nodes };
 }
 
-export function updateNodeProps(document: EugineDocument, id: string, props: NodeProps, options: { merge?: boolean } = { merge: true }): EugineDocument {
+export interface UpdateNodeDataOptions {
+  merge?: boolean;
+  /**
+   * Keys to delete outright, applied after the merge. This is what lets an
+   * undo be expressed as a *patch* — "restore these keys, remove those" —
+   * instead of a wholesale replacement of the props object. A wholesale
+   * replacement also wipes every key added since the value was captured,
+   * which in a collaborative session means silently deleting another user's
+   * work as a side effect of your own undo.
+   */
+  unset?: readonly string[];
+}
+
+function applyPatch<T extends Record<string, unknown>>(
+  existing: T | undefined,
+  patch: T,
+  options: UpdateNodeDataOptions,
+): T {
+  const next: Record<string, unknown> = options.merge === false ? { ...patch } : { ...existing, ...patch };
+  for (const key of options.unset ?? []) delete next[key];
+  return next as T;
+}
+
+export function updateNodeProps(
+  document: EugineDocument,
+  id: string,
+  props: NodeProps,
+  options: UpdateNodeDataOptions = { merge: true },
+): EugineDocument {
   const node = getNode(document, id);
   const nodes = cloneNodesMap(document);
-  nodes[id] = { ...node, props: options.merge === false ? props : { ...node.props, ...props } };
+  nodes[id] = { ...node, props: applyPatch(node.props, props, options) };
   return { ...document, nodes };
 }
 
-export function updateNodeStyles(document: EugineDocument, id: string, styles: NodeStyles, options: { merge?: boolean } = { merge: true }): EugineDocument {
+export function updateNodeStyles(
+  document: EugineDocument,
+  id: string,
+  styles: NodeStyles,
+  options: UpdateNodeDataOptions = { merge: true },
+): EugineDocument {
   const node = getNode(document, id);
   const nodes = cloneNodesMap(document);
-  nodes[id] = { ...node, styles: options.merge === false ? styles : { ...node.styles, ...styles } };
+  nodes[id] = { ...node, styles: applyPatch(node.styles, styles, options) };
   return { ...document, nodes };
+}
+
+/**
+ * The patch that reverses applying `patch` to `before` — restoring only the
+ * keys this change actually touched, and unsetting the ones it introduced.
+ * Keys nobody touched are left out entirely, so replaying this inverse never
+ * disturbs a concurrent edit to a different key on the same node.
+ */
+export function invertPatch(
+  before: Record<string, unknown> | undefined,
+  patch: Record<string, unknown>,
+  merge: boolean,
+): { patch: Record<string, unknown>; unset: string[] } {
+  const previous = before ?? {};
+  // A non-merging write replaces the whole object, so it touches every key it
+  // removed as well as every key it set.
+  const touched = merge ? Object.keys(patch) : [...new Set([...Object.keys(patch), ...Object.keys(previous)])];
+
+  const restore: Record<string, unknown> = {};
+  const unset: string[] = [];
+  for (const key of touched) {
+    if (Object.prototype.hasOwnProperty.call(previous, key)) restore[key] = previous[key];
+    else unset.push(key);
+  }
+  return { patch: restore, unset };
 }
 
 export function replaceNode(document: EugineDocument, id: string, next: EugineNode): EugineDocument {
@@ -267,9 +410,10 @@ export function replaceNode(document: EugineDocument, id: string, next: EugineNo
 function remapSubtreeIds(
   sourceNodes: Record<string, EugineNode>,
   ids: string[],
+  idFactory: IdFactory = defaultIdFactory,
 ): { idMap: Map<string, string>; nodes: Record<string, EugineNode> } {
   const idMap = new Map<string, string>();
-  for (const id of ids) idMap.set(id, createId("node"));
+  for (const id of ids) idMap.set(id, idFactory());
 
   const nodes: Record<string, EugineNode> = {};
   for (const id of ids) {
@@ -285,8 +429,12 @@ function remapSubtreeIds(
   return { idMap, nodes };
 }
 
-export function duplicateSubtree(document: EugineDocument, id: string): { document: EugineDocument; newId: string } {
-  const { idMap, nodes: cloned } = remapSubtreeIds(document.nodes, subtreeIds(document, id));
+export function duplicateSubtree(
+  document: EugineDocument,
+  id: string,
+  idFactory?: IdFactory,
+): { document: EugineDocument; newId: string } {
+  const { idMap, nodes: cloned } = remapSubtreeIds(document.nodes, subtreeIds(document, id), idFactory);
   const newId = idMap.get(id)!;
   cloned[newId] = { ...cloned[newId]!, parent: null };
 
@@ -309,22 +457,29 @@ export function duplicateSubtree(document: EugineDocument, id: string): { docume
 export function cloneSubtreeSnapshot(
   snapshot: Record<string, EugineNode>,
   rootId: string,
+  idFactory?: IdFactory,
 ): { rootId: string; nodes: Record<string, EugineNode> } {
-  const { idMap, nodes: cloned } = remapSubtreeIds(snapshot, Object.keys(snapshot));
+  const { idMap, nodes: cloned } = remapSubtreeIds(snapshot, Object.keys(snapshot), idFactory);
   const newRootId = idMap.get(rootId)!;
   cloned[newRootId] = { ...cloned[newRootId]!, parent: null };
   return { rootId: newRootId, nodes: cloned };
 }
 
 /** Wraps `id` in a newly created node of `wrapperType`, preserving position. */
-export function wrapNode(document: EugineDocument, id: string, wrapperType: string, wrapperOptions: CreateNodeOptions = {}): { document: EugineDocument; wrapperId: string } {
+export function wrapNode(
+  document: EugineDocument,
+  id: string,
+  wrapperType: string,
+  wrapperOptions: CreateNodeOptions = {},
+  idFactory?: IdFactory,
+): { document: EugineDocument; wrapperId: string } {
   const node = getNode(document, id);
   const parentId = node.parent;
   if (!parentId) throw invalidDocument("Cannot wrap the root node.", { id });
   const parent = getNode(document, parentId);
   const index = parent.children.indexOf(id);
 
-  const wrapper = createNode(wrapperType, wrapperOptions);
+  const wrapper = createNode(wrapperType, wrapperOptions, idFactory);
   let doc = insertNode(document, wrapper, parentId, index);
   doc = moveNode(doc, id, wrapper.id, { index: 0 });
   return { document: doc, wrapperId: wrapper.id };
