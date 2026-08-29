@@ -73,7 +73,7 @@ export { Selection } from "./selection.js";
 export type { SelectionEvents } from "./selection.js";
 
 // Serialization
-export { MigrationRegistry, loadDocument, serializeDocument } from "./serialization.js";
+export { MigrationRegistry, isSerializedDocument, loadDocument, serializeDocument } from "./serialization.js";
 export type { LoadDocumentOptions, Migration } from "./serialization.js";
 
 // Plugins

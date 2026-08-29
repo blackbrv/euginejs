@@ -1,4 +1,4 @@
-import type { SerializedDocument, StorageAdapter } from "eugine";
+import { isSerializedDocument, type SerializedDocument, type StorageAdapter } from "eugine";
 
 const KEY_PREFIX = "eugine-playground:";
 
@@ -10,6 +10,17 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   load(id = "default"): SerializedDocument | undefined {
     const raw = window.localStorage.getItem(KEY_PREFIX + id);
-    return raw ? (JSON.parse(raw) as SerializedDocument) : undefined;
+    if (!raw) return undefined;
+
+    // JSON.parse() is typed `any` by TypeScript's own lib — isSerializedDocument
+    // actually verifies the shape instead of blindly trusting that assertion,
+    // so a stale/corrupted localStorage entry from an older app version fails
+    // loudly here instead of crashing deeper inside the editor.
+    const parsed: unknown = JSON.parse(raw);
+    if (!isSerializedDocument(parsed)) {
+      console.warn(`[playground] localStorage entry "${id}" is not a valid Eugine document; ignoring it.`);
+      return undefined;
+    }
+    return parsed;
   }
 }

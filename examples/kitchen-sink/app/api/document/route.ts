@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { SerializedDocument } from "eugine";
+import { isSerializedDocument } from "eugine";
 import { getPublishedDocument, setPublishedDocument } from "@/lib/store";
 
 /**
@@ -13,7 +13,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const document = (await request.json()) as SerializedDocument;
-  setPublishedDocument(document);
+  // request.json() is typed `any` by TypeScript's own lib, and this is a
+  // public endpoint — never trust that assertion, verify it. A request body
+  // that isn't actually a Eugine document is rejected with 400 instead of
+  // being stored as if it were one.
+  const body: unknown = await request.json();
+  if (!isSerializedDocument(body)) {
+    return NextResponse.json({ error: "Request body is not a valid Eugine document." }, { status: 400 });
+  }
+  setPublishedDocument(body);
   return NextResponse.json({ ok: true });
 }

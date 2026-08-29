@@ -51,6 +51,37 @@ export class MigrationRegistry {
   }
 }
 
+/**
+ * A runtime type guard for the untrusted-JSON boundary — `localStorage`,
+ * `JSON.parse`, `fetch(...).json()`, an HTTP request body, and similar APIs
+ * are all typed `any` by TypeScript's own standard library, so a plain
+ * `as SerializedDocument` there is an unchecked leap of faith, not a real
+ * guarantee. This actually verifies the shape before narrowing, so hosts
+ * never have to blind-cast data coming off the wire:
+ *
+ *   const parsed: unknown = JSON.parse(raw);
+ *   if (!isSerializedDocument(parsed)) throw new Error("not a eugine document");
+ *   editor.load(parsed); // `parsed` is now genuinely known to be SerializedDocument
+ *
+ * Deeper structural validation of the document itself (tree integrity, id
+ * uniqueness, ...) still happens in loadDocument()/validateDocument() — this
+ * only rules out payloads that couldn't possibly be a SerializedDocument.
+ */
+export function isSerializedDocument(value: unknown): value is SerializedDocument {
+  if (typeof value !== "object" || value === null) return false;
+  const envelope = value as Record<string, unknown>;
+
+  if (typeof envelope.schemaVersion !== "number") return false;
+  if (envelope.engine !== "eugine") return false;
+  if (typeof envelope.engineVersion !== "string") return false;
+
+  const document = envelope.document;
+  if (typeof document !== "object" || document === null) return false;
+  const doc = document as Record<string, unknown>;
+
+  return typeof doc.schemaVersion === "number" && typeof doc.rootId === "string" && typeof doc.nodes === "object" && doc.nodes !== null;
+}
+
 export interface LoadDocumentOptions {
   migrations?: MigrationRegistry;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyDocument, createNode, insertNode } from "../src/tree.js";
-import { MigrationRegistry, loadDocument, serializeDocument } from "../src/serialization.js";
+import { MigrationRegistry, isSerializedDocument, loadDocument, serializeDocument } from "../src/serialization.js";
 import { EugineError } from "../src/errors.js";
 
 describe("serialization", () => {
@@ -55,5 +55,41 @@ describe("serialization", () => {
     const serialized = serializeDocument(doc);
     serialized.document = { ...serialized.document, rootId: "does-not-exist" };
     expect(() => loadDocument(serialized)).toThrow(EugineError);
+  });
+});
+
+describe("isSerializedDocument", () => {
+  it("accepts a real serialized document", () => {
+    const serialized: unknown = serializeDocument(createEmptyDocument());
+    expect(isSerializedDocument(serialized)).toBe(true);
+    // Narrowed: this compiles only because isSerializedDocument is a type guard.
+    if (isSerializedDocument(serialized)) {
+      expect(serialized.document.rootId).toBe("root");
+    }
+  });
+
+  it("rejects values parsed from arbitrary/untrusted JSON", () => {
+    const notEvenClose: unknown = JSON.parse('{"hello":"world"}');
+    expect(isSerializedDocument(notEvenClose)).toBe(false);
+
+    const wrongEngine: unknown = JSON.parse(JSON.stringify({ ...serializeDocument(createEmptyDocument()), engine: "other" }));
+    expect(isSerializedDocument(wrongEngine)).toBe(false);
+  });
+
+  it("rejects primitives, null, and arrays", () => {
+    expect(isSerializedDocument(null)).toBe(false);
+    expect(isSerializedDocument(undefined)).toBe(false);
+    expect(isSerializedDocument("a string")).toBe(false);
+    expect(isSerializedDocument(42)).toBe(false);
+    expect(isSerializedDocument([])).toBe(false);
+  });
+
+  it("rejects an envelope whose inner document is malformed", () => {
+    const serialized = serializeDocument(createEmptyDocument());
+    const missingRootId: unknown = { ...serialized, document: { ...serialized.document, rootId: undefined } };
+    expect(isSerializedDocument(missingRootId)).toBe(false);
+
+    const nodesNotAnObject: unknown = { ...serialized, document: { ...serialized.document, nodes: "not-an-object" } };
+    expect(isSerializedDocument(nodesNotAnObject)).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import type { SerializedDocument, StorageAdapter } from "eugine";
+import { isSerializedDocument, type SerializedDocument, type StorageAdapter } from "eugine";
 
 /** A real StorageAdapter implementation talking to app/api/document/route.ts over fetch. */
 export class ApiStorageAdapter implements StorageAdapter {
@@ -14,7 +14,14 @@ export class ApiStorageAdapter implements StorageAdapter {
   async load(): Promise<SerializedDocument | undefined> {
     const res = await fetch("/api/document");
     if (!res.ok) throw new Error(`Failed to load document: ${res.status}`);
-    const data = (await res.json()) as SerializedDocument | null;
-    return data ?? undefined;
+
+    // Response.json() is typed `any` by TypeScript's own lib — verify the
+    // shape instead of blindly asserting it, so a malformed/legacy payload
+    // fails clearly here rather than surfacing as a confusing error deep
+    // inside the editor.
+    const data: unknown = await res.json();
+    if (data === null) return undefined;
+    if (!isSerializedDocument(data)) throw new Error("Server returned a payload that is not a valid Eugine document.");
+    return data;
   }
 }
