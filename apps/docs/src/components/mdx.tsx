@@ -2,6 +2,7 @@ import defaultMdxComponents from "fumadocs-ui/mdx";
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import type { MDXComponents } from "mdx/types";
+import { CodeFromFile } from "@/components/CodeFromFile";
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -10,6 +11,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Callout,
     Card,
     Cards,
+    CodeFromFile,
     ...components,
   };
 }
