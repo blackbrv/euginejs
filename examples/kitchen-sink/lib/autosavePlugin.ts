@@ -1,4 +1,4 @@
-import { createAutosave, type Editor, type EuginePlugin } from "eugine";
+import { createAutosave, type AutosaveHandle, type Editor, type EuginePlugin } from "eugine";
 
 /**
  * A real EuginePlugin: install()/destroy() lifecycle hooks, wired through
@@ -7,11 +7,11 @@ import { createAutosave, type Editor, type EuginePlugin } from "eugine";
  * to wire document changes to their own save function.
  */
 export function createAutosavePlugin(onSave: (nodeCount: number) => void, debounceMs = 1500): EuginePlugin<Editor> {
-  let stop: (() => void) | null = null;
+  let autosave: AutosaveHandle | null = null;
   return {
     name: "autosave-log",
     install(editor) {
-      stop = createAutosave(
+      autosave = createAutosave(
         editor.store,
         (document) => {
           onSave(Object.keys(document.nodes).length);
@@ -20,8 +20,11 @@ export function createAutosavePlugin(onSave: (nodeCount: number) => void, deboun
       );
     },
     destroy() {
-      stop?.();
-      stop = null;
+      // stop() flushes any change still waiting on the debounce rather than
+      // discarding it — closing the editor a beat after the user's last edit
+      // must not be what loses that edit.
+      void autosave?.stop();
+      autosave = null;
     },
   };
 }

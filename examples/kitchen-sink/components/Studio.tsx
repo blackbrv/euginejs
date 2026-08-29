@@ -106,7 +106,14 @@ export default function Studio() {
   const publish = async () => {
     const editor = editorRef.current!;
     setStatus("Publishing…");
-    await editor.storage.save(editor.serialize());
+
+    // editor.save() sends the revision this document was based on, so the
+    // server can refuse a write that would overwrite someone else's newer one.
+    const result = await editor.save();
+    if (!result.ok) {
+      setStatus("Someone else published since you started. Load from server, then re-apply your changes.");
+      return;
+    }
     setStatus("Published. See /preview.");
   };
 
