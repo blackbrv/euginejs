@@ -12,21 +12,23 @@ import {
   UpdateStylesCommand,
   WrapNodeCommand,
 } from "./commands/index.js";
-import { DocumentStore } from "./document.js";
+import { DocumentStore, type ChangeOrigin } from "./document.js";
 import { EventBus } from "./events.js";
 import { History, type Transaction } from "./history.js";
 import { createId } from "./id.js";
+import { applyOperations, type EugineOperation, type OperationConflictPolicy } from "./operations.js";
 import { EuginePlugin, PluginManager } from "./plugin.js";
 import { ComponentRegistry } from "./registry.js";
 import { Selection } from "./selection.js";
 import { LoadDocumentOptions, MigrationRegistry, loadDocument, serializeDocument } from "./serialization.js";
-import { StorageManager } from "./storage.js";
+import { StorageManager, type SaveOptions, type SaveResult } from "./storage.js";
 import {
   captureSubtree,
   cloneSubtreeSnapshot,
   createEmptyDocument,
   getNode,
   type CreateNodeOptions,
+  type IdFactory,
   type SubtreeSnapshot,
 } from "./tree.js";
 import type {
@@ -41,12 +43,14 @@ import type {
 export interface EditorEventMap {
   "editor.ready": Record<string, never>;
   "editor.destroy": Record<string, never>;
-  "document.change": { document: EugineDocument; previous: EugineDocument };
+  "document.change": { document: EugineDocument; previous: EugineDocument; origin?: ChangeOrigin };
   "document.load": { document: EugineDocument };
+  /** Operations from another client were applied — see Editor.applyRemote(). */
+  "document.remote": { applied: EugineOperation[]; dropped: EugineOperation[] };
   "node.create": { node: EugineNode };
   "node.delete": { id: string };
   "node.move": { id: string; parentId: string };
-  "node.select": { ids: string[] };
+  "node.select": { ids: string[]; previous: string[] };
   "node.update": { id: string };
   "history.undo": { transaction: Transaction };
   "history.redo": { transaction: Transaction };
@@ -58,6 +62,23 @@ export interface InsertOptions extends Omit<CreateNodeOptions, "children"> {
   index?: number;
 }
 
+export interface ApplyRemoteOptions {
+  /** The client the operations came from, reported on the resulting change. */
+  clientId?: string;
+  /**
+   * What to do with an operation whose target no longer exists. Defaults to
+   * `"drop"`: a remote op arriving for a node this client already deleted is
+   * a normal race, not an error, and throwing would take down the sync loop
+   * along with everything queued behind it.
+   */
+  policy?: OperationConflictPolicy;
+}
+
+export interface ApplyRemoteResult {
+  applied: EugineOperation[];
+  dropped: EugineOperation[];
+}
+
 export interface CreateEditorOptions {
   /** Component definitions registered up-front, keyed conceptually by type. */
   components?: ComponentDefinition[];
@@ -65,6 +86,19 @@ export interface CreateEditorOptions {
   document?: EugineDocument | SerializedDocument;
   migrations?: MigrationRegistry;
   plugins?: EuginePlugin<Editor>[];
+  /**
+   * Identifies this client in a shared session. Transactions are tagged with
+   * it, and undo/redo then skip anything authored elsewhere — so Ctrl+Z never
+   * reverts a colleague's edit.
+   */
+  clientId?: string;
+  /**
+   * Mints ids for newly created nodes. Supply a client-scoped factory in a
+   * collaborative session rather than trusting two browsers' independent
+   * `Math.random()` never to collide — a duplicate id makes `insertNode()`
+   * throw, which is a hard failure in the sync loop.
+   */
+  idFactory?: IdFactory;
 }
 
 function isSerializedDocument(value: EugineDocument | SerializedDocument): value is SerializedDocument {
@@ -84,11 +118,16 @@ export class Editor {
   readonly events = new EventBus<EditorEventMap>();
   readonly storage = new StorageManager();
   readonly migrations: MigrationRegistry;
+  /** Identifies this client in a shared session, if one was configured. */
+  readonly clientId: string | undefined;
+  private readonly idFactory: IdFactory;
   private readonly plugins: PluginManager<Editor>;
   private readonly disposers: Array<() => void> = [];
 
   constructor(options: CreateEditorOptions = {}) {
     this.migrations = options.migrations ?? new MigrationRegistry();
+    this.clientId = options.clientId;
+    this.idFactory = options.idFactory ?? (() => createId("node"));
 
     for (const definition of options.components ?? []) {
       this.registry.register(definition);
@@ -104,11 +143,11 @@ export class Editor {
     }
 
     this.store = new DocumentStore(initialDocument);
-    this.history = new History(this.store);
+    this.history = new History(this.store, { clientId: options.clientId });
     this.plugins = new PluginManager(this);
 
     this.disposers.push(
-      this.store.onChange(({ document, previous }) => {
+      this.store.onChange(({ document, previous, origin }) => {
         // Any node that no longer exists (removed directly, removed as part
         // of an ancestor's subtree, unwrapped, etc.) must not linger in
         // selection — otherwise a document.change listener that looks up
@@ -119,7 +158,14 @@ export class Editor {
         // (including the host's own) sees the change.
         const stale = this.selection.get().filter((id) => !document.nodes[id]);
         if (stale.length > 0) this.selection.deselect(stale);
-        this.events.emit("document.change", { document, previous });
+        this.events.emit("document.change", { document, previous, origin });
+      }),
+      // Selection changes are what a presence layer subscribes to in order to
+      // show "Sarah is editing this heading". The event was declared on
+      // EditorEventMap but nothing ever emitted it, so anyone who wired it up
+      // got silence — with full autocomplete, which made it worse.
+      this.selection.onSelectionChange(({ ids, previous }) => {
+        this.events.emit("node.select", { ids, previous });
       }),
       this.history.events.on("undo", (payload) => this.events.emit("history.undo", payload)),
       this.history.events.on("redo", (payload) => this.events.emit("history.redo", payload)),
@@ -172,7 +218,7 @@ export class Editor {
     });
 
     const node: EugineNode = {
-      id: options.id ?? createId("node"),
+      id: options.id ?? this.idFactory(),
       type,
       props: { ...definition.defaults?.props, ...options.props },
       styles: { ...definition.defaults?.styles, ...options.styles },
@@ -214,7 +260,7 @@ export class Editor {
   }
 
   duplicate(id: string): string {
-    const command = new DuplicateNodeCommand(id);
+    const command = new DuplicateNodeCommand(id, this.idFactory);
     this.history.execute(command);
     const newId = command.duplicatedId;
     if (newId) this.events.emit("node.create", { node: this.getNode(newId) });
@@ -238,7 +284,7 @@ export class Editor {
    * the original or with earlier pastes. One undo step.
    */
   pasteSubtree(snapshot: SubtreeSnapshot, parentId: string, index?: number): string {
-    const clone = cloneSubtreeSnapshot(snapshot.nodes, snapshot.rootId);
+    const clone = cloneSubtreeSnapshot(snapshot.nodes, snapshot.rootId, this.idFactory);
     this.history.execute(new PasteSubtreeCommand(clone.nodes, clone.rootId, parentId, index));
     this.events.emit("node.create", { node: this.getNode(clone.rootId) });
     return clone.rootId;
@@ -265,13 +311,13 @@ export class Editor {
   }
 
   wrap(id: string, wrapperType: string, options: CreateNodeOptions = {}): string {
-    const command = new WrapNodeCommand(id, wrapperType, options);
+    const command = new WrapNodeCommand(id, wrapperType, options, this.idFactory);
     this.history.execute(command);
     return command.createdWrapperId ?? id;
   }
 
   unwrap(id: string): void {
-    this.history.execute(new UnwrapNodeCommand(id));
+    this.history.execute(new UnwrapNodeCommand(id, this.idFactory));
   }
 
   /** Groups every command run inside `fn` into a single history transaction. */
@@ -283,15 +329,60 @@ export class Editor {
     this.history.execute(command);
   }
 
+  // --- Collaboration --------------------------------------------------------
+
+  /**
+   * Applies operations authored by another client.
+   *
+   * Deliberately bypasses history: a remote edit must never land on this
+   * user's undo stack, or their next Ctrl+Z reverts someone else's work. It
+   * also never throws on a vanished target by default — a remote op arriving
+   * for a node this client already deleted is an ordinary race, and aborting
+   * would take the sync loop down with it. Dropped operations are returned so
+   * the host can decide whether they matter.
+   */
+  applyRemote(operations: readonly EugineOperation[], options: ApplyRemoteOptions = {}): ApplyRemoteResult {
+    const { applied, dropped, document } = applyOperations(this.store.get(), operations, {
+      policy: options.policy ?? "drop",
+    });
+
+    if (applied.length > 0) {
+      const origin: ChangeOrigin = { clientId: options.clientId, remote: true };
+      this.store.set(document, { origin });
+    }
+
+    this.events.emit("document.remote", { applied, dropped });
+    return { applied, dropped };
+  }
+
   // --- Serialization --------------------------------------------------------
 
   serialize(): SerializedDocument {
     return serializeDocument(this.store.get());
   }
 
+  /**
+   * Serializes and persists through the configured storage adapter, tagging
+   * the write with the revision it was based on so the adapter can reject it
+   * if the stored document has moved on.
+   *
+   * Prefer this over `editor.storage.save(editor.serialize())` — forgetting
+   * the baseRevision is what makes two clients editing one page silently
+   * last-write-wins.
+   */
+  async save(options: Omit<SaveOptions, "baseRevision"> = {}): Promise<SaveResult> {
+    return await this.storage.save(this.serialize(), {
+      ...options,
+      baseRevision: this.store.getRevision(),
+    });
+  }
+
   load(serialized: SerializedDocument, options: LoadDocumentOptions = {}): void {
     const document = loadDocument(serialized, { migrations: options.migrations ?? this.migrations });
-    this.store.set(document);
+    // Keep the revision the document arrived with: bumping it here would make
+    // this client's very first save look like it was based on a revision the
+    // server has never seen.
+    this.store.set(document, { bumpRevision: false });
     this.history.clear();
     this.selection.clear();
     this.events.emit("document.load", { document });

@@ -107,4 +107,10 @@ export type { AutosaveHandle, AutosaveOptions, SaveOptions, SaveResult, StorageA
 
 // Editor facade
 export { Editor, createEditor } from "./editor.js";
-export type { CreateEditorOptions, EditorEventMap, InsertOptions } from "./editor.js";
+export type {
+  ApplyRemoteOptions,
+  ApplyRemoteResult,
+  CreateEditorOptions,
+  EditorEventMap,
+  InsertOptions,
+} from "./editor.js";
