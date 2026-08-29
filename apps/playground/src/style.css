@@ -336,6 +336,9 @@ button {
 /* ---------- Palette ---------- */
 
 .eb-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 9px 11px;
   margin-bottom: 6px;
   background: var(--surface-alt);
@@ -343,16 +346,34 @@ button {
   border-radius: var(--radius-sm);
   cursor: grab;
   font-size: 13px;
+  color: var(--text-muted);
   transition:
     background-color 140ms var(--ease),
     border-color 140ms var(--ease),
+    color 140ms var(--ease),
     transform 100ms var(--ease);
+}
+
+.eb-palette-item .eb-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: color 140ms var(--ease);
+}
+
+.eb-palette-item span {
+  color: var(--text);
 }
 
 .eb-palette-item:hover {
   background: var(--accent-soft);
   border-color: var(--accent);
   transform: translateX(2px);
+}
+
+.eb-palette-item:hover .eb-icon {
+  color: var(--accent);
 }
 
 .eb-palette-item:active {
@@ -373,8 +394,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 6px;
-  cursor: pointer;
   border-radius: var(--radius-sm);
   transition: background-color 120ms var(--ease);
 }
@@ -387,6 +406,78 @@ button {
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 500;
+}
+
+.eb-layer-row-main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 2px;
+  cursor: pointer;
+}
+
+.eb-layer-caret {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.eb-layer-caret .eb-icon {
+  width: 10px;
+  height: 10px;
+  transition: transform 160ms var(--ease);
+}
+
+.eb-layer-caret-expanded .eb-icon {
+  transform: rotate(90deg);
+}
+
+.eb-layer-caret-empty {
+  visibility: hidden;
+  cursor: default;
+}
+
+.eb-layer-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  color: var(--text-faint);
+}
+
+.eb-layer-icon .eb-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.eb-layer-selected .eb-layer-icon,
+.eb-layer-selected .eb-layer-caret {
+  color: var(--accent);
+}
+
+.eb-layer-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eb-layer-actions {
+  display: flex;
+  flex-shrink: 0;
+  padding-right: 4px;
 }
 
 .eb-layer-actions button {
@@ -419,6 +510,12 @@ button {
  * themed off the app's --bg/--surface/--text tokens (those flip with dark
  * mode); it uses fixed "site" colors instead, matching exportHtml.ts's
  * EXPORT_CSS so the canvas stays a true WYSIWYG preview of the export.
+ *
+ * No padding here on purpose: .eb-canvas-root (the rendered root node) fills
+ * this frame edge-to-edge, so the white area you see *is* the page, not a
+ * page floating inside extra editor chrome. Any spacing inside it comes
+ * entirely from root's own padding (Design panel), which is the only
+ * padding that actually ships in the exported HTML.
  */
 .eb-canvas {
   --site-bg: #ffffff;
@@ -427,12 +524,41 @@ button {
   --site-border: #e4e4ea;
   --site-accent: #4f46e5;
 
+  position: relative;
   background: var(--site-bg);
   min-height: 100%;
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: 20px;
+  /* Deliberately square, not rounded — a real published site has square
+     corners by default, and this frame is meant to preview the full site
+     as-is, not decorate it with editor chrome. */
+  overflow: hidden;
   color: var(--site-text);
+}
+
+/*
+ * Drag-and-drop position indicator — a single element repositioned during
+ * `dragover` (see canvas.ts) rather than one per node, so there's a single
+ * source of truth for "what's hovered and at what position". A thin line
+ * shows a before/after reorder point between siblings; the "inside" case
+ * instead highlights the hovered container directly via .eb-drop-target,
+ * so the indicator just hides itself for that case.
+ */
+.eb-drop-indicator {
+  position: absolute;
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.eb-drop-indicator--horizontal-line {
+  height: 3px !important;
+  margin-top: -1.5px;
+}
+
+.eb-drop-indicator--vertical-line {
+  width: 3px !important;
+  margin-left: -1.5px;
 }
 
 .eb-canvas-root {
@@ -455,23 +581,38 @@ button {
   background: var(--accent-soft);
 }
 
+/* Double-click-to-edit: entered via contentEditable in canvas.ts's makeEditableText(). */
+.eb-editing {
+  outline: 2px dashed var(--accent) !important;
+  cursor: text;
+  user-select: text;
+}
+
 /*
  * Selection marker — see @eugine/renderer's `data-eugine-selected`
  * attribute (README: "Selection marker"). Eugine ships no default look for
  * this; everything below is this app's own choice, freely swappable for a
  * different outline, a corner handle, a floating toolbar, etc.
  */
+/*
+ * outline-offset is negative (inset) rather than the more common positive
+ * offset: .eb-canvas now clips to its rounded corners (overflow: hidden,
+ * so the page fills the frame edge-to-edge with no chrome padding — see
+ * .eb-canvas above), and a component can be selected while flush against
+ * that edge. An outline drawn *outside* the box, or a label floating
+ * *above* it, would have nowhere to go and get clipped off. Inset avoids
+ * ever depending on space outside the selected element itself.
+ */
 [data-eugine-selected] {
   outline: 2px solid var(--accent) !important;
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 [data-eugine-selected]::before {
   content: attr(data-eugine-type);
   position: absolute;
   top: 0;
-  left: -2px;
-  transform: translateY(-100%);
+  left: 0;
   padding: 2px 6px;
   font-size: 10px;
   font-weight: 600;
@@ -480,7 +621,7 @@ button {
   letter-spacing: 0.04em;
   color: #fff;
   background: var(--accent);
-  border-radius: 4px 4px 4px 0;
+  border-radius: 0 0 4px 0;
   white-space: nowrap;
   pointer-events: none;
   z-index: 5;
@@ -649,6 +790,45 @@ button {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.eb-length-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eb-length-amount {
+  flex: 1;
+  min-width: 0;
+  width: auto !important;
+  padding: 7px 9px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 140ms var(--ease),
+    box-shadow 140ms var(--ease);
+}
+
+.eb-length-amount:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.eb-length-unit {
+  flex-shrink: 0;
+  width: 68px;
+  padding: 7px 6px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
 }
 
 .eb-custom-style-row {
@@ -917,4 +1097,42 @@ button {
   .eb-panel {
     display: none;
   }
+}
+
+/* ---------- Context menu ---------- */
+
+.eb-context-menu {
+  position: fixed;
+  z-index: 250;
+  min-width: 150px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.eb-context-menu-item {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.eb-context-menu-item:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.eb-context-menu-item:disabled {
+  color: var(--text-faint);
+  cursor: default;
 }

@@ -1,7 +1,10 @@
 import { createEditor } from "eugine";
 import { mountCanvas, registerPaletteDrag, PALETTE_ITEMS } from "./canvas.js";
+import { componentIcon } from "./componentIcons.js";
+import { showContextMenu } from "./contextMenu.js";
 import { openExportDialog } from "./exportDialog.js";
 import { icon } from "./icons.js";
+import { initKeyboardShortcuts } from "./keyboard.js";
 import { renderInspector, renderLayers } from "./panels.js";
 import { toComponentDefinitions } from "./schema.js";
 import { LocalStorageAdapter } from "./storageAdapter.js";
@@ -57,15 +60,25 @@ const layersEl = document.getElementById("layers-list") as HTMLElement;
 const inspectorEl = document.getElementById("inspector") as HTMLElement;
 const paletteEl = document.getElementById("palette-list") as HTMLElement;
 
-function selectNode(id: string): void {
-  editor.selection.select(id);
+function selectNode(id: string, additive = false): void {
+  editor.selection.select(id, { additive });
 }
 
-const canvas = mountCanvas(editor, canvasEl, selectNode);
+function onContextMenu(id: string, clientX: number, clientY: number): void {
+  showContextMenu(editor, id, clientX, clientY, selectNode);
+}
+
+const canvas = mountCanvas(editor, canvasEl, selectNode, onContextMenu);
+initKeyboardShortcuts(editor, selectNode);
+
+function previewStyle(id: string, property: string, value: string): void {
+  const el = canvas.renderer.getElement(id);
+  if (el instanceof HTMLElement) el.style.setProperty(property, value);
+}
 
 function refreshPanels(): void {
-  renderLayers(editor, layersEl, selectNode);
-  renderInspector(editor, inspectorEl);
+  renderLayers(editor, layersEl, selectNode, onContextMenu);
+  renderInspector(editor, inspectorEl, previewStyle);
 }
 
 editor.events.on("document.change", () => {
@@ -76,12 +89,15 @@ editor.events.on("document.change", () => {
 editor.selection.onSelectionChange(({ ids }) => {
   refreshPanels();
   canvas.renderer.setSelection(ids);
+  const lastSelected = ids.at(-1);
+  const el = lastSelected ? canvas.renderer.getElement(lastSelected) : undefined;
+  if (el instanceof Element) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
 });
 
 for (const item of PALETTE_ITEMS) {
   const el = document.createElement("div");
   el.className = "eb-palette-item";
-  el.textContent = item.label;
+  el.innerHTML = `${componentIcon(item.type)}<span>${item.label}</span>`;
   registerPaletteDrag(el, item.type);
   el.addEventListener("click", () => selectNode(editor.insert(item.type, editor.getDocument().rootId)));
   paletteEl.appendChild(el);
