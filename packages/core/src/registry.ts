@@ -1,4 +1,4 @@
-import { componentNotRegistered, invalidDrop } from "./errors.js";
+import { componentAlreadyRegistered, componentNotRegistered, invalidDrop } from "./errors.js";
 import type { ComponentDefinition } from "./types.js";
 
 export interface DropCheckContext {
@@ -19,7 +19,7 @@ export class ComponentRegistry<TRender = unknown> {
 
   register(definition: ComponentDefinition<TRender>): void {
     if (this.definitions.has(definition.type)) {
-      throw new Error(`Component type "${definition.type}" is already registered.`);
+      throw componentAlreadyRegistered(definition.type);
     }
     this.definitions.set(definition.type, definition);
   }

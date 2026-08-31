@@ -23,7 +23,12 @@ describe("ComponentRegistry", () => {
   it("refuses to register the same type twice", () => {
     const registry = new ComponentRegistry();
     registry.register({ type: "hero" });
-    expect(() => registry.register({ type: "hero" })).toThrow();
+    expect(() => registry.register({ type: "hero" })).toThrow(EugineError);
+    try {
+      registry.register({ type: "hero" });
+    } catch (error) {
+      expect((error as EugineError).code).toBe("EUGINE_COMPONENT_ALREADY_REGISTERED");
+    }
   });
 
   it("enforces accepts: 'none'", () => {

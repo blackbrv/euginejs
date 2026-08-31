@@ -52,3 +52,11 @@ export function componentNotRegistered(type: string): EugineError {
 export function invalidDrop(message: string, context?: object): EugineError {
   return new EugineError("EUGINE_INVALID_DROP", message, { context });
 }
+
+export function componentAlreadyRegistered(type: string): EugineError {
+  return new EugineError(
+    "EUGINE_COMPONENT_ALREADY_REGISTERED",
+    `Component type "${type}" is already registered. Use registerOrReplace() if you intend to replace it.`,
+    { context: { type } },
+  );
+}

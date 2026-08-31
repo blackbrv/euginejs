@@ -1,5 +1,5 @@
 // Errors
-export { EugineError, componentNotRegistered, invalidDocument, invalidDrop, nodeNotFound } from "./errors.js";
+export { EugineError, componentAlreadyRegistered, componentNotRegistered, invalidDocument, invalidDrop, nodeNotFound } from "./errors.js";
 export type { EugineErrorCode, EugineErrorOptions } from "./errors.js";
 
 // IDs
