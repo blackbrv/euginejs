@@ -56,9 +56,28 @@ const editor = createEditor({ clientId: "user-42" });
 
 ```ts
 editor.history.onChange(({ transaction, kind }) => {
-  // kind: "execute" | "undo" | "redo" | "clear"
+  // kind: "execute" | "undo" | "redo"
 });
 
 // Committed transactions, with their serializable operations.
 editor.history.onCommit(({ operations }) => { /* ship them */ });
 ```
+
+<Callout type="info">
+  `clear()` does not fire `onChange()` — it resets both stacks silently, with no event and no
+  transaction to describe (`"clear"` is a valid TypeScript value for `kind`, but nothing currently
+  emits it). Update your own state *before* calling `clear()` if you need to react to it.
+</Callout>
+
+## Introspecting the stacks
+
+```ts
+const undoable = editor.history.getUndoStack(); // oldest first
+const redoable = editor.history.getRedoStack();
+```
+
+Each entry is plain data — `{ id, label, commandNames, timestamp, origin, isLocal }` — enough to
+build a history timeline or a custom undo/redo browser without exposing the underlying `Command`
+instances (which is deliberate: a UI calling `execute()`/`undo()` on one directly would bypass
+`History`'s stack bookkeeping and the atomic-replay guarantee above). `isLocal` tells you whether
+this client's own `undo()`/`redo()` can reach that entry — see "Undo is scoped to the client" above.

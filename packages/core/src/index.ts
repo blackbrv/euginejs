@@ -87,7 +87,7 @@ export * from "./commands/index.js";
 
 // History
 export { History, transactionToOperations } from "./history.js";
-export type { HistoryEvents, HistoryOptions, Transaction } from "./history.js";
+export type { HistoryEntry, HistoryEvents, HistoryOptions, Transaction } from "./history.js";
 
 // Selection
 export { Selection } from "./selection.js";

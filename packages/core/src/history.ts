@@ -12,6 +12,33 @@ export interface Transaction {
    * transaction this client authored — see History's `clientId` option.
    */
   origin?: ChangeOrigin;
+  /**
+   * Assigned once, the first time this transaction is committed (see
+   * History.getUndoStack()/getRedoStack()) — stable across every later
+   * undo/redo move, since it's the same object the whole time. Absent on a
+   * transaction that hasn't been committed yet (e.g. mid-`transaction()`).
+   */
+  id?: string;
+  /** Commit time (`Date.now()`), assigned alongside `id`. */
+  timestamp?: number;
+}
+
+/**
+ * A read-only, serializable view of one transaction on the undo/redo stack —
+ * enough to build a history timeline/browser UI without exposing the
+ * `Command` instances themselves (which have private fields and closures,
+ * and which a UI could otherwise call `execute()`/`undo()` on directly,
+ * bypassing History's stack bookkeeping and the atomic-replay guarantee).
+ */
+export interface HistoryEntry {
+  readonly id: string;
+  readonly label: string | undefined;
+  /** Command names, in execution order — e.g. `["insert", "move"]` for a two-step transaction. */
+  readonly commandNames: readonly string[];
+  readonly timestamp: number;
+  readonly origin: ChangeOrigin | undefined;
+  /** Whether this client's undo()/redo() can reach this entry — see HistoryOptions.clientId. */
+  readonly isLocal: boolean;
 }
 
 export interface HistoryEvents {
@@ -69,6 +96,7 @@ export class History {
   private redoStack: Transaction[] = [];
   private activeTransaction: Transaction | null = null;
   private readonly clientId: string | undefined;
+  private transactionSeq = 0;
   readonly events = new EventBus<HistoryEvents>();
 
   constructor(
@@ -124,6 +152,11 @@ export class History {
   }
 
   private commit(transaction: Transaction, kind: "execute" | "undo" | "redo"): void {
+    // Assigned once, here, the moment a transaction first enters a stack —
+    // undo()/redo() only ever move this same object between stacks
+    // afterwards, so the id/timestamp stay stable for its whole lifetime.
+    transaction.id ??= `tx_${++this.transactionSeq}`;
+    transaction.timestamp ??= Date.now();
     this.undoStack.push(transaction);
     this.redoStack = [];
     this.events.emit("afterChange", { transaction });
@@ -205,6 +238,44 @@ export class History {
   clear(): void {
     this.undoStack = [];
     this.redoStack = [];
+  }
+
+  private toEntry(transaction: Transaction): HistoryEntry {
+    return {
+      // Only ever undefined for a transaction that has never been through
+      // commit() — every transaction reachable from undoStack/redoStack has.
+      id: transaction.id!,
+      label: transaction.label,
+      commandNames: transaction.commands.map((command) => command.name),
+      timestamp: transaction.timestamp!,
+      // Cloned, not aliased: `HistoryEntry.origin` is only readonly at the
+      // type level — a host mutating this object in place (e.g. redacting a
+      // clientId for display) would otherwise reach through to the live
+      // Transaction.origin that isLocal()/replay() consult, corrupting the
+      // per-client undo-scoping guarantee for a transaction still on a stack.
+      origin: transaction.origin ? { ...transaction.origin } : undefined,
+      isLocal: this.isLocal(transaction),
+    };
+  }
+
+  /**
+   * A read-only snapshot of the transactions this client can currently
+   * undo, oldest first — for building a history timeline, browser, or
+   * custom undo/redo UI. Plain data, not the live stack: mutating the
+   * returned array has no effect, and there is no way to reach the
+   * underlying `Command` instances (call `undo()`/`redo()` to actually act
+   * on one). Includes transactions from every client, not just this one —
+   * check `isLocal` to tell which entries this client's own `undo()` can
+   * reach; `canUndo()` is `entries.some(e => e.isLocal)` restricted to the
+   * one nearest the end, which is exactly what `undo()` acts on next.
+   */
+  getUndoStack(): readonly HistoryEntry[] {
+    return this.undoStack.map((transaction) => this.toEntry(transaction));
+  }
+
+  /** Same as getUndoStack(), for the transactions this client can currently redo. */
+  getRedoStack(): readonly HistoryEntry[] {
+    return this.redoStack.map((transaction) => this.toEntry(transaction));
   }
 
   onChange(listener: (payload: HistoryEvents["change"]) => void): () => void {
