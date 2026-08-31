@@ -9,12 +9,12 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build -w @eugine/core -w @eugine/renderer -w @eugine/renderer-server -w eugine -w docs -w playground -w example-getting-started -w example-kitchen-sink --if-present",
+    "build": "npm run build -w @eugine/core -w @eugine/renderer -w @eugine/renderer-server -w @eugine/versioning -w eugine -w docs -w playground -w example-getting-started -w example-kitchen-sink --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present",
-    "build:docs": "npm run build -w @eugine/core -w @eugine/renderer -w @eugine/renderer-server -w eugine && npm run build -w docs"
+    "build:docs": "npm run build -w @eugine/core -w @eugine/renderer -w @eugine/renderer-server -w @eugine/versioning -w eugine && npm run build -w docs"
   },
   "devDependencies": {
     "typescript": "^5.6.3",

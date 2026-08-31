@@ -5,6 +5,7 @@ export default defineConfig({
     index: "src/index.ts",
     renderer: "src/renderer.ts",
     server: "src/server.ts",
+    versioning: "src/versioning.ts",
   },
   format: ["esm", "cjs"],
   dts: true,
@@ -13,5 +14,5 @@ export default defineConfig({
   target: "es2020",
   splitting: false,
   treeshake: true,
-  external: ["@eugine/core", "@eugine/renderer", "@eugine/renderer-server"],
+  external: ["@eugine/core", "@eugine/renderer", "@eugine/renderer-server", "@eugine/versioning"],
 });

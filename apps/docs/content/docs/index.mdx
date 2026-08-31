@@ -33,8 +33,9 @@ runtime, no `window`, and deterministic output for identical input.
 ```text
 @eugine/core  (no deps; no DOM, no React)
    ├─ @eugine/renderer          browser DOM renderer
-   └─ @eugine/renderer-server   SSR-safe HTML renderer
-        └─ eugine               re-exports core; eugine/renderer, eugine/server subpaths
+   ├─ @eugine/renderer-server   SSR-safe HTML renderer
+   ├─ @eugine/versioning        persistent document versions (a plugin, not a core feature)
+   └─ eugine                    re-exports core; eugine/renderer, eugine/server, eugine/versioning subpaths
 ```
 
 | Package | What it is |
@@ -43,6 +44,8 @@ runtime, no `window`, and deterministic output for identical input.
 | `@eugine/core` | The engine: document model, registry, commands, history, selection, serialization, plugins, storage interface. |
 | `@eugine/renderer` | Browser DOM renderer with per-node incremental updates. |
 | `@eugine/renderer-server` | Deterministic HTML string renderer with zero browser API dependencies. |
+
+See [Versioning](/docs/guides/versioning) for what `@eugine/versioning` covers.
 
 ## Security boundary
 

@@ -31,7 +31,7 @@ jobs:
       - run: npm run test
       - name: Validate npm package contents
         run: |
-          for pkg in core renderer renderer-server; do
+          for pkg in core renderer renderer-server versioning; do
             npm pack --dry-run -w "@eugine/$pkg"
           done
           npm pack --dry-run -w eugine

@@ -92,14 +92,28 @@ TypeDoc emits it — fence code examples in doc comments (see `SELECTED_ATTRIBUT
 ```
 @eugine/core  (no deps; no DOM/React)
    ├─ @eugine/renderer          (browser DOM renderer)
-   └─ @eugine/renderer-server   (SSR-safe HTML renderer)
-        └─ eugine               (re-exports core; eugine/renderer, eugine/server subpaths)
+   ├─ @eugine/renderer-server   (SSR-safe HTML renderer)
+   ├─ @eugine/versioning        (persistent document versions — a plugin, not a core feature)
+   └─ eugine                    (re-exports core; eugine/renderer, eugine/server, eugine/versioning subpaths)
 ```
 
 `eugine` is the package most consumers install; `@eugine/*` packages can be used standalone.
 Every package builds both ESM and CJS with an explicit `exports` map — there's no default-export
 ambiguity to worry about, and workspace-internal deps resolve via npm symlinks without needing a
-publish.
+publish. Adding a new workspace package that other packages depend on means adding it to the
+explicit `-w` list in the root `build`/`build:docs` scripts, in dependency order — see the note in
+the Commands section above.
+
+**`@eugine/versioning` is intentionally not part of `@eugine/core`.** The PRD (§75) is explicit:
+persistent document versions ("Draft v12" / "Published v10", with rollback) should "remain outside
+the core unless a dedicated plugin provides it" — this is a different concept from `History`
+(in-session undo/redo, ephemeral, cleared on `editor.load()`). `Versioning` installs via
+`editor.use(...)` (the `EuginePlugin` lifecycle in `packages/core/src/plugin.ts` — install →
+initialize → ready → destroy) and stores full `SerializedDocument` snapshots through a
+host-supplied `VersionAdapter`, so restoring an old version runs through the editor's normal
+`load()`/`MigrationRegistry` path rather than a separate one this package would have to keep in
+sync. Versions are append-only by design — the package never overwrites or deletes one, including
+on rollback (`restoreVersion()` loads the old content *and* records a new version on top of it).
 
 ## Core architecture (`packages/core/src`)
 
@@ -187,7 +201,7 @@ ancestors to rebuild), and garbage-collects the element cache for ids no longer 
 
 ## Testing conventions
 
-- `packages/core` and `packages/renderer-server`: vitest `environment: "node"`.
+- `packages/core`, `packages/renderer-server`, and `packages/versioning`: vitest `environment: "node"`.
 - `packages/renderer` and `packages/eugine`: vitest `environment: "jsdom"` (needs the `jsdom`
   devDependency; DOM assertions and `document.createElement` work directly in tests).
 - `packages/core/tests/invariants.test.ts` runs randomized sequences of editor operations (seeded

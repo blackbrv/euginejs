@@ -18,6 +18,7 @@ const PACKAGE_TITLES = {
   core: "@eugine/core",
   renderer: "@eugine/renderer",
   "renderer-server": "@eugine/renderer-server",
+  versioning: "@eugine/versioning",
   eugine: "eugine",
 };
 

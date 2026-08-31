@@ -6,6 +6,7 @@
     "../../packages/core/src/index.ts",
     "../../packages/renderer/src/index.ts",
     "../../packages/renderer-server/src/index.ts",
+    "../../packages/versioning/src/index.ts",
     "../../packages/eugine/src/index.ts"
   ],
   "tsconfig": "./typedoc.tsconfig.json",

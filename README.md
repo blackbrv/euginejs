@@ -22,10 +22,11 @@ This is an npm workspaces monorepo:
 
 | Package | What it is |
 | --- | --- |
-| [`eugine`](./packages/eugine) | Convenience package: re-exports `@eugine/core`, plus `eugine/renderer` and `eugine/server` subpaths. This is what most apps install. |
+| [`eugine`](./packages/eugine) | Convenience package: re-exports `@eugine/core`, plus `eugine/renderer`, `eugine/server`, and `eugine/versioning` subpaths. This is what most apps install. |
 | [`@eugine/core`](./packages/core) | The engine: document model, component registry, commands, history, selection, serialization, plugin system, storage adapter interface. No DOM, no React. |
 | [`@eugine/renderer`](./packages/renderer) | Browser DOM renderer with localized (per-node) incremental updates. |
 | [`@eugine/renderer-server`](./packages/renderer-server) | Deterministic HTML string renderer with zero browser API dependencies — safe for Next.js Server Components and other SSR contexts. |
+| [`@eugine/versioning`](./packages/versioning) | Optional plugin for persistent, durable document versions (create/list/roll back) — separate from in-session undo/redo. |
 
 Each package builds to ESM + CJS with full TypeScript declarations and an explicit `exports` map
 (no default-export ambiguity), and can be depended on independently.
@@ -93,6 +94,7 @@ eugine/
 │   ├── core/                  @eugine/core   — document model, registry, commands, history
 │   ├── renderer/               @eugine/renderer        — browser DOM renderer
 │   ├── renderer-server/        @eugine/renderer-server  — SSR-safe HTML renderer
+│   ├── versioning/             @eugine/versioning       — persistent document versions (plugin)
 │   └── eugine/                 eugine                  — convenience re-export package
 ├── package.json                workspace root
 └── tsconfig.base.json          shared TypeScript config

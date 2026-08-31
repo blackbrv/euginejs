@@ -3,7 +3,10 @@ title: History
 description: Transactions, atomic replay, and undo that is safe with a second author.
 ---
 
-`History` is a transaction-aware undo/redo stack over commands.
+`History` is a transaction-aware undo/redo stack over commands — in-session and ephemeral, cleared
+on `editor.load()`. For durable checkpoints that survive a refresh or a deploy ("Draft v3",
+"Published v2", with rollback), see [Versioning](/docs/guides/versioning) instead — a separate
+concept, and a separate package.
 
 ```ts
 editor.history.undo();

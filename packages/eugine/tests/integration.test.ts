@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createEditor } from "eugine";
 import { renderToDom, type DomComponentRenderer } from "eugine/renderer";
 import { renderToString, type HtmlComponentRenderer } from "eugine/server";
+import { MemoryVersionAdapter, Versioning, VersioningError } from "eugine/versioning";
 import { ComponentRegistry } from "@eugine/core";
 
 /**
@@ -90,5 +91,16 @@ describe("eugine end-to-end", () => {
     // Selecting/deselecting a node must never change the persisted document.
     expect(beforeDeselect).toEqual(afterDeselect);
     expect(JSON.stringify(beforeDeselect)).not.toContain("selection");
+  });
+
+  it("exposes the versioning plugin through the eugine/versioning subpath", async () => {
+    const versioning = new Versioning({ adapter: new MemoryVersionAdapter() });
+    const editor = createEditor();
+    editor.use(versioning);
+
+    const version = await versioning.createVersion({ label: "v1" });
+    expect(version.label).toBe("v1");
+    expect(await versioning.listVersions()).toHaveLength(1);
+    expect(VersioningError).toBeTypeOf("function");
   });
 });

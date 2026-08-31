@@ -1,0 +1,113 @@
+---
+title: Versioning
+description: Durable "Draft v3" / "Published v2" checkpoints, separate from undo/redo.
+---
+
+```bash
+npm install @eugine/versioning
+```
+
+## Not the same thing as History
+
+`History` (`editor.history`) is an in-session undo/redo stack — ephemeral, cleared on
+`editor.load()`, gone on refresh. `@eugine/versioning`'s `Versioning` is the opposite: durable
+checkpoints a host creates *explicitly* ("Save version", "Publish", a periodic timer) that persist
+through a refresh, a deploy, or a different editing session, because they're written through a
+`VersionAdapter` you provide.
+
+<Callout type="info">
+  This is a separate package, not part of `@eugine/core` — the PRD is explicit that "version
+  management itself should remain outside the core unless a dedicated plugin provides it." A host
+  that doesn't need persistent versions pays nothing for this feature.
+</Callout>
+
+## Basic usage
+
+```ts
+import { createEditor } from "eugine";
+import { MemoryVersionAdapter, Versioning } from "@eugine/versioning";
+
+const editor = createEditor();
+const versioning = new Versioning({ adapter: new MemoryVersionAdapter(), documentId: "home-page" });
+editor.use(versioning);
+
+// ... the user edits ...
+const v1 = await versioning.createVersion({ label: "First draft" });
+
+// ... more edits ...
+await versioning.createVersion({ label: "Published" });
+
+const versions = await versioning.listVersions(); // oldest first
+
+// Loads v1 into the live editor, and by default records a new version
+// capturing the restore — nothing already saved is ever deleted or renumbered.
+const { restoredFrom, recordedVersion } = await versioning.restoreVersion(v1.id);
+```
+
+`createVersion()` is an explicit action, not something recorded on every keystroke — wire it to
+whatever your host's "save a version" moment actually is.
+
+## Bring your own storage
+
+```ts
+interface VersionAdapter {
+  save(documentId: string, version: Omit<DocumentVersion, "number">): Promise<DocumentVersion> | DocumentVersion;
+  list(documentId: string): Promise<DocumentVersion[]> | DocumentVersion[];
+  get(documentId: string, versionId: string): Promise<DocumentVersion | undefined> | DocumentVersion | undefined;
+}
+```
+
+Unlike `@eugine/core`'s `StorageAdapter` (one current document per id, free to overwrite), a
+`VersionAdapter` **must never overwrite or delete an existing version**. Notice `save()` takes a
+version *without* a `number` and returns one *with* one — assigning it is the adapter's job, not
+`Versioning`'s: only your backend can make "the next number" atomic for itself (a database
+auto-increment column, a transactional read-modify-write). `MemoryVersionAdapter` is the in-process
+reference implementation — numbering from the last entry in its own array with no `await` in
+between, so concurrent `createVersion()` calls in one process never race — useful for tests and
+prototyping, and a model for a real one.
+
+## Rollback preserves history
+
+`restoreVersion(id)` loads the target version into the live editor via `editor.load()` — so schema
+migration runs exactly as it would for any other document, see below — and then, by default,
+records a **new** version capturing the restored content:
+
+```ts
+const { restoredFrom, recordedVersion } = await versioning.restoreVersion(v1.id);
+// restoredFrom: the version that was loaded (v1)
+// recordedVersion: the new version recording the restore, or undefined if you passed { recordRestore: false }
+```
+
+This is a rollback, not a history rewrite: `listVersions()` afterward still shows every version
+that ever existed, in order, with nothing truncated or renumbered. Pass `{ recordRestore: false }`
+to skip recording — the live document still changes, `versioning.events` still fires
+`"version.restore"`, but nothing new is persisted.
+
+<Callout type="warn">
+  If the auto-recorded version's `save()` fails, `restoreVersion()` rejects — but the live document
+  has already rolled back by then. Check the error message/code
+  (`VERSIONING_ADAPTER_ERROR`, see [Error Reference](/docs/advanced/errors)) rather than assuming a
+  rejected `restoreVersion()` means nothing happened.
+</Callout>
+
+## Schema migration
+
+Each `DocumentVersion.document` is a full `SerializedDocument` envelope — the exact shape
+`editor.serialize()`/`editor.load()` already use — so restoring a version saved under an older
+`schemaVersion` runs through the same `MigrationRegistry` your editor is configured with. There is
+no separate migration path for version history to fall out of sync with.
+
+## Events
+
+```ts
+versioning.events.on("version.create", ({ version }) => { /* update a version list UI */ });
+versioning.events.on("version.restore", ({ restoredFrom, recordedVersion }) => { /* ... */ });
+```
+
+## What this package intentionally does not do
+
+- **No automatic/periodic versioning** — `createVersion()` is explicit, by design.
+- **No pruning/retention policy** — nothing here ever deletes a version; cap history length in your
+  own `VersionAdapter` if you want that.
+- **No diffing** — two versions are both plain `SerializedDocument` values; diff them however suits
+  your UI.
