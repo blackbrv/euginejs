@@ -1,0 +1,139 @@
+---
+title: Error Reference
+description: Every error code, what triggers it, and how to fix it.
+---
+
+Every error `@eugine/core` throws is an `EugineError` — never a plain `Error`, never a bare string
+— so you can always branch on `.code` instead of parsing a message:
+
+```ts
+import { EugineError } from "eugine";
+
+try {
+  editor.insert("hero", targetId);
+} catch (error) {
+  if (error instanceof EugineError && error.code === "EUGINE_INVALID_DROP") {
+    // handle it specifically
+  } else {
+    throw error;
+  }
+}
+```
+
+`error.context` carries whatever structured data caused it (ids, types, versions — see each code
+below); `error.cause` carries the original error when one was wrapped, per the standard `Error`
+`cause` chain.
+
+## Core errors (`@eugine/core`)
+
+| Code | Thrown when |
+| --- | --- |
+| `EUGINE_DOCUMENT_INVALID` | A structural rule was violated — see below |
+| `EUGINE_NODE_NOT_FOUND` | An id doesn't resolve to a node in the current document |
+| `EUGINE_COMPONENT_NOT_REGISTERED` | `registry.get(type)` / a renderer / `editor.insert()` referenced an unregistered type |
+| `EUGINE_COMPONENT_ALREADY_REGISTERED` | `registry.register()` was called twice for the same `type` |
+| `EUGINE_INVALID_DROP` | A drop rule (`accepts`, `maxChildren`, a locked node) rejected the operation |
+| `EUGINE_SERIALIZATION_FAILED` | `loadDocument()` got an unrecognized `engine` field, or the document failed validation after migrating |
+| `EUGINE_MIGRATION_FAILED` | No `Migration` is registered for the document's `schemaVersion`, or a migration chain exceeded 1000 steps |
+| `EUGINE_RENDER_FAILED` | A renderer hit an unregistered type with `onMissingComponent: "throw"` |
+| `EUGINE_PLUGIN_ERROR` | `editor.use()` was called twice with the same plugin `name`, a plugin's `install`/`ready` threw, or no storage adapter is configured |
+| `EUGINE_HISTORY_ERROR` | A command threw during `undo()`/`redo()` replay |
+
+### `EUGINE_DOCUMENT_INVALID`
+
+The catch-all for "this document/operation breaks a structural invariant": a duplicate node id, a
+child referencing a parent that doesn't list it back, a node claimed by two parents, moving a node
+into its own subtree, removing/moving/wrapping/unwrapping the root, a node nesting deeper than the
+configured `maxDepth` (default 2000 — see [Security](/docs/advanced/security)), or a node id of
+`"__proto__"`.
+
+**Fix:** these almost always mean the document came from somewhere other than Eugine's own tree
+operations (hand-built JSON, a buggy migration, a corrupted save). Validate with `isSerializedDocument()`
+before `loadDocument()`, and don't hand-construct `EugineNode`/`EugineDocument` objects outside
+`createNode()`/the tree functions.
+
+### `EUGINE_NODE_NOT_FOUND`
+
+An id you passed — to `editor.getNode()`, `editor.move()`, an operation's `id`/`parentId` — doesn't
+exist in the *current* document. This is expected and non-fatal for a remote operation applied with
+`policy: "drop"` (see [Collaboration](/docs/guides/collaboration)); for a direct local call it
+usually means stale state (an id captured before a concurrent removal).
+
+### `EUGINE_INVALID_DROP`
+
+Check `error.context` for `parentType`/`childType`/`currentChildCount` (or `id` for a locked-node
+case) to know exactly which rule fired: `accepts: "none"`, an explicit `accepts` list that doesn't
+include the child's type, or `maxChildren` already reached. `registry.canAcceptChild()` lets you
+check before attempting the drop, e.g. to grey out a drop target in a UI.
+
+<Callout type="info">
+  Duplicating the root node also throws `EUGINE_INVALID_DROP` ("root cannot be duplicated"), while
+  wrapping or unwrapping the root throws `EUGINE_DOCUMENT_INVALID` instead — both are "you can't
+  touch the root" cases, surfaced through two different codes because they're enforced in two
+  different places (a command vs. a tree function). Branch on the message content in `context` if
+  you need to tell these apart from an ordinary drop-rule rejection; don't assume `EUGINE_INVALID_DROP`
+  always implies a registry rule.
+</Callout>
+
+### `EUGINE_MIGRATION_FAILED` vs `EUGINE_SERIALIZATION_FAILED`
+
+These pair up around `loadDocument()`: a stale `schemaVersion` with no matching `Migration`
+registered (or no `MigrationRegistry` supplied at all) is `EUGINE_MIGRATION_FAILED`; an
+unrecognized `engine` field, or a document that fails `validateDocument()` *after* migrating
+successfully, is `EUGINE_SERIALIZATION_FAILED` with the validation error as `.cause`. See
+[Migrations](/docs/advanced/migrations).
+
+### `EUGINE_PLUGIN_ERROR`
+
+Several distinct triggers share this code: registering a plugin `name` that's already installed;
+`install()`/`initialize()` throwing during `editor.use()` (the original error is `.cause`, and the
+plugin **is** rolled back out of the registry — it never counts as installed); and calling
+`editor.storage.save()`/`.load()` with no adapter configured via `editor.storage.use()`.
+
+<Callout type="warn">
+  A `ready()` failure is *not* always rolled back the same way. `editor.use()` calls `ready()`
+  immediately, with rollback, only if the editor is already ready when you call it. A plugin passed
+  via `createEditor({ plugins: [...] })` has its `ready()` called later, in a batch, when the editor
+  itself becomes ready — a throw there stays registered (nothing removes it), and any plugin later
+  in that same batch never gets its own `ready()` called at all, since the loop stops at the first
+  throw.
+</Callout>
+
+See [Plugins](/docs/advanced/plugins).
+
+### `EUGINE_HISTORY_ERROR`
+
+A command's `undo()`/`redo()` threw mid-replay. The document is rolled back to exactly where it was
+before the replay started, and both the undo and redo stacks are left untouched — the transaction
+is still there to retry or inspect via `.cause`. See [History](/docs/concepts/history).
+
+## Versioning errors (`@eugine/versioning`)
+
+A separate error class, `VersioningError` — not a new `EugineErrorCode` variant, since this package
+doesn't modify `@eugine/core`'s error taxonomy. Same shape (`.code`, `.context`, `.cause`),
+distinguished with `instanceof VersioningError` or `error.name === "VersioningError"`.
+
+| Code | Thrown when |
+| --- | --- |
+| `VERSIONING_NOT_INSTALLED` | A `Versioning` method was called before `editor.use(versioning)` |
+| `VERSIONING_VERSION_NOT_FOUND` | `restoreVersion()` was given an id with no matching version for this `documentId` |
+| `VERSIONING_ADAPTER_ERROR` | Your `VersionAdapter`'s `save()`/`list()`/`get()` threw |
+| `VERSIONING_RESTORE_FAILED` | `editor.load()` itself threw while restoring (e.g. a stale `schemaVersion` with no migration registered) |
+
+<Callout type="warn">
+  A `VERSIONING_ADAPTER_ERROR` thrown from inside `restoreVersion()`'s auto-recorded version step
+  does **not** mean the restore failed — the live document has already rolled back by that point.
+  The error message says so explicitly; don't treat every rejection from `restoreVersion()` as "the
+  document is unchanged." See [Versioning](/docs/guides/versioning).
+</Callout>
+
+## Prevention checklist
+
+- Narrow untrusted JSON with `isSerializedDocument()` before it ever reaches `loadDocument()`.
+- Check `registry.canAcceptChild()`/`registry.has()` before a drop or insert your UI already knows
+  might be invalid, instead of relying on the throw as control flow.
+- Register every schema migration your document's `schemaVersion` history needs — a
+  `MigrationRegistry` with a gap fails exactly the same way as none at all.
+- Give every plugin a unique `name`, and make `install()` throw early (before subscribing to
+  anything) if it can't set up — `PluginManager` only rolls back the registry entry, not partial
+  side effects your own `install()` created before throwing.
