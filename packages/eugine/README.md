@@ -3,9 +3,8 @@
 > Build your editor your way. Eugine provides the engine.
 
 Eugine is an extensible engine for building drag-and-drop visual editors and page builders —
-website builders, email builders, CMS editors, dashboard builders, form builders — without
-implementing the document model, drag-and-drop, undo/redo, serialization and rendering plumbing
-from scratch.
+without implementing the document model, drag-and-drop, undo/redo, serialization and rendering
+plumbing from scratch.
 
 ```bash
 npm install eugine

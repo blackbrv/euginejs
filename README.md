@@ -2,10 +2,10 @@
 
 **An extensible engine for building drag-and-drop visual editors and page builders.**
 
-Eugine is not a complete website builder. It's the infrastructure a website builder, email
-builder, CMS editor, dashboard builder, or form builder is built *on top of* — a document model,
-component registry, command/history system, and rendering architecture — so you don't have to
-implement drag-and-drop, undo/redo, serialization and rendering from scratch.
+Eugine is not a complete website builder. It's the infrastructure any visual drag-and-drop
+editor is built *on top of* — a document model, component registry, command/history system, and
+rendering architecture — so you don't have to implement drag-and-drop, undo/redo, serialization
+and rendering from scratch.
 
 > Eugine gives developers the engine. Developers build the editor.
 
