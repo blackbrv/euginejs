@@ -1,4 +1,4 @@
 {
   "title": "Advanced",
-  "pages": ["plugins", "custom-renderers", "migrations", "security"]
+  "pages": ["plugins", "custom-renderers", "migrations", "security", "iframe"]
 }

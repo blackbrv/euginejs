@@ -1,0 +1,109 @@
+---
+title: Iframe Embedding
+description: Rendering the canvas at real page dimensions.
+---
+
+A common reason to reach for an `<iframe>` is CSS: a page's own media queries need to evaluate
+against the width of the page being edited, not the width of whatever panel the editor chrome
+happens to give the canvas. Sizing an `<iframe>` to a real device preset (375×667, 768×1024,
+1440×900, ...) gives the rendered document a genuine viewport to respond to.
+
+## It already works
+
+`@eugine/renderer`'s DOM renderer has no dependency that would stop it running inside an iframe:
+
+- No reference to `window` anywhere in the package.
+- No same-origin assumption baked into rendering itself.
+- No global event listeners, no `ResizeObserver`, no drag-and-drop wiring — the only browser APIs
+  it touches at all are `globalThis.document.createElement`/`createComment` (see `dom.ts`), used to
+  build the exact nodes it needs.
+
+<Callout type="info">
+  This is a description of what the library already supports, not a new feature — there is nothing
+  to install or configure to embed the canvas in an iframe.
+</Callout>
+
+## Mounting into a same-origin iframe
+
+`iframe.contentDocument` is populated once the iframe has finished loading, and only for a
+same-origin iframe (a cross-origin one returns `null` — see below). Once you have it, it is just
+another `Document` to render into:
+
+<CodeFromFile file="iframe" region="mount" />
+
+The editor instance — commands, history, selection — stays in the parent's script context; only
+the rendered DOM lives inside the iframe. Keep the `Editor` where your keyboard shortcuts, property
+panel, and layer tree already are, and update the iframe's renderer the same way any other
+`document.change` listener would.
+
+## Styling the canvas
+
+An iframe has its own CSSOM — a parent page's stylesheets do not leak into it. Give the iframe's
+`srcdoc` (or same-origin child page) its own `<head>` with whatever reset/base styles the rendered
+components need, or inject a `<link>`/`<style>` into `iframeDocument.head` once it has loaded.
+
+## Sizing to a real viewport
+
+```html
+<iframe
+  srcdoc="<!doctype html><html><head></head><body></body></html>"
+  style="width: 375px; height: 667px; border: 0;"
+></iframe>
+```
+
+Swap the `width`/`height` for whichever device preset the host UI is currently showing. If the
+surrounding panel is narrower than the target width, scale the iframe down with a CSS `transform:
+scale(...)` on a wrapper rather than shrinking the iframe itself — shrinking the iframe changes the
+viewport width media queries see; scaling a wrapper does not.
+
+## Drag-and-drop across the boundary
+
+`getDropPosition()` (`eugine/renderer`) is pure geometry — it classifies a pointer position against
+a rect with no DOM access at all, so it works the same whether both come from inside the iframe or
+not. The one thing to get right is **coordinate space**: a pointer event captured on the parent
+window reports `clientX`/`clientY` relative to the parent's viewport, while
+`element.getBoundingClientRect()` on an element living inside the iframe is relative to the
+iframe's own viewport. Translate one into the other before comparing them:
+
+<CodeFromFile file="iframe" region="coordinates" />
+
+A drag that starts and ends entirely inside the iframe needs no translation — the pointer and the
+target element already share a coordinate space. Translation only matters when they don't, e.g.
+dragging a new component in from a parent-side palette.
+
+## Keyboard and focus
+
+Keyboard events follow the DOM's normal per-document model: a listener attached to the iframe's
+`document` only fires while focus is inside the iframe. If part of the canvas interaction — typing
+into a text block, arrow-key nudging a selected element — happens inside the iframe, attach that
+listener there and forward the resulting intent (`editor.history.undo()`, `editor.move(...)`, ...)
+back to the parent's `Editor` instance directly, since the editor itself lives in the parent's
+script context in this architecture.
+
+## Cross-origin iframes
+
+If the framed document is a genuinely different origin from the parent — previewing a live deployed
+URL rather than an editor-owned shell — `contentDocument`/`contentWindow` access is blocked by the
+browser entirely; there is no way to mount the DOM renderer into it from the parent's script. The
+renderer instead has to run inside the iframe's own bundle, and the document has to cross the
+boundary via `postMessage`. Eugine ships no transport for this, but it does ship the wire format:
+`editor.serialize()` or the operations from `history.onCommit()` are the same
+transport-agnostic payloads used for [real-time collaboration](/docs/guides/collaboration) — the
+same shape that ships an edit to another browser over a WebSocket also works to ship it across an
+iframe boundary over `postMessage`.
+
+<Callout type="warn">
+  `<iframe sandbox="allow-scripts allow-same-origin">` together defeat the sandbox for a
+  same-origin document: combining both tokens lets the framed content remove its own restrictions.
+  Use one or the other, not both, if the canvas needs to be genuinely sandboxed.
+</Callout>
+
+## Limitations
+
+- **No built-in `postMessage` transport.** Cross-origin syncing is host integration work — reuse
+  the collaboration operation format above rather than inventing a new wire shape.
+- **No automatic resize handling.** The renderer has no dependency on window size and does not
+  observe iframe resizes itself; scaling the canvas to fit available space is a host/CSS concern.
+- **No sandboxing guarantees.** `editor.use()` and a rendered document's component types are
+  resolved through your own registry (see [Security](/docs/advanced/security)) — an iframe boundary
+  does not change that trust model, it only isolates rendering.
