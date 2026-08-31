@@ -1,0 +1,227 @@
+/*
+ * Site-wide theme for the eugine docs (shared chrome + docs pages).
+ *
+ * Imported AFTER the fumadocs neutral/preset imports so these override the
+ * default neutral tokens to match the Nexus landing aesthetic. Light/dark are
+ * driven by the `.dark` class on <html> (wired by next-themes via RootProvider
+ * and toggled by Fumadocs' ThemeSwitch). Dark uses the landing's near-black
+ * base (`#020202`) with indigo/purple accents; light is a clean, readable
+ * variant. Also carries the shared fixed background, scrollbar, selection,
+ * smooth-scroll, section-reveal, and preloader styles used across the site.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Nexus color tokens — docs pages & shared chrome                    */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --color-fd-background: hsl(0, 0%, 97%);
+  --color-fd-foreground: hsl(0, 0%, 6%);
+  --color-fd-muted: hsl(0, 0%, 93%);
+  --color-fd-muted-foreground: hsl(0, 0%, 38%);
+  --color-fd-popover: hsl(0, 0%, 100%);
+  --color-fd-popover-foreground: hsl(0, 0%, 8%);
+  --color-fd-card: hsl(0, 0%, 100%);
+  --color-fd-card-foreground: hsl(0, 0%, 6%);
+  --color-fd-border: hsla(0, 0%, 0%, 12%);
+  --color-fd-primary: #4f46e5;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-secondary: hsl(0, 0%, 92%);
+  --color-fd-secondary-foreground: hsl(0, 0%, 8%);
+  --color-fd-accent: rgba(79, 70, 229, 0.12);
+  --color-fd-accent-foreground: #312e81;
+  --color-fd-ring: #6366f1;
+}
+
+.dark {
+  --color-fd-background: #020202;
+  --color-fd-foreground: hsl(0, 0%, 94%);
+  --color-fd-muted: hsl(240, 6%, 10%);
+  --color-fd-muted-foreground: hsl(0, 0%, 66%);
+  --color-fd-popover: hsl(240, 6%, 6%);
+  --color-fd-popover-foreground: hsl(0, 0%, 92%);
+  --color-fd-card: hsl(240, 5%, 8%);
+  --color-fd-card-foreground: hsl(0, 0%, 96%);
+  --color-fd-border: hsla(0, 0%, 100%, 0.09);
+  --color-fd-primary: #6366f1;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-secondary: hsl(240, 5%, 12%);
+  --color-fd-secondary-foreground: hsl(0, 0%, 90%);
+  --color-fd-accent: rgba(99, 102, 241, 0.14);
+  --color-fd-accent-foreground: #c7d2fe;
+  --color-fd-ring: #6366f1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fixed layered background shared by docs pages (landing paints its    */
+/* own opaque .nexus-bg on top, so this never double-renders there).    */
+/* ------------------------------------------------------------------ */
+
+body {
+  background-color: var(--color-fd-background);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgb(0 0 0 / 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(0 0 0 / 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.dark body::before {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.025) 1px, transparent 1px);
+}
+
+/* ------------------------------------------------------------------ */
+/* Global feel: selection + scrollbar                                  */
+/* ------------------------------------------------------------------ */
+
+::selection {
+  background: rgb(99 102 241 / 0.3);
+  color: #e0e7ff;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #262626 #050505;
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 9999px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Anchored sections: give the sticky nav room and a settled reveal    */
+/* ------------------------------------------------------------------ */
+
+section[id],
+div[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scroll-reveal: hidden by default, revealed by the Reveal client     */
+/* component toggling .nexus-revealed. Progressive fade-up.            */
+/* ------------------------------------------------------------------ */
+
+.nexus-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.nexus-reveal.nexus-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Preloader + circular-zoom page reveal                               */
+/*                                                                     */
+/* The preloader is a dark full-screen layer holding the logo. When it  */
+/* finishes loading it hands off to a `.nexus-reveal-overlay` (a dark    */
+/* layer whose opacity is cut by a growing transparent circle): the page */
+/* underneath is only visible through a small circle at first, and that  */
+/* circle expands until it covers the viewport — reading as the page     */
+/* "circular-zooming" in. The overlay is removed once the wipe finishes. */
+/* ------------------------------------------------------------------ */
+
+.nexus-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: #020202;
+  transition: opacity 0.4s ease;
+}
+
+.nexus-preloader.nexus-preloader-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The logo mark pulses while loading */
+.nexus-preloader .nexus-preloader-logo {
+  animation: nexus-logo-breathe 1.2s ease-in-out infinite;
+}
+
+.nexus-preloader .nexus-preloader-caption {
+  font-family: var(--nexus-mono, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+}
+
+@keyframes nexus-logo-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+/* Dark layer with a growing transparent (revealed) circle in the middle.
+   The page is painted underneath; the circle is what "zooms in" on it. */
+.nexus-reveal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: #020202;
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    transparent 0 56px,
+    #000 56px 100%
+  );
+  mask-image: radial-gradient(circle at 50% 50%, transparent 0 56px, #000 56px 100%);
+  animation: nexus-circular-zoom 0.85s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+
+@keyframes nexus-circular-zoom {
+  to {
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 50%,
+      transparent 0 90vmax,
+      #000 90vmax 100%
+    );
+    mask-image: radial-gradient(circle at 50% 50%, transparent 0 90vmax, #000 90vmax 100%);
+  }
+}

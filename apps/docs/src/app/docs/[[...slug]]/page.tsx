@@ -3,6 +3,7 @@ import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layo
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
+import { DocsReveal } from "@/components/DocsReveal";
 import { source } from "@/lib/source";
 
 interface PageParams {
@@ -21,7 +22,9 @@ export default async function Page({ params }: PageParams) {
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
-        <MDX components={getMDXComponents({ a: createRelativeLink(source, page) })} />
+        <DocsReveal>
+          <MDX components={getMDXComponents({ a: createRelativeLink(source, page) })} />
+        </DocsReveal>
       </DocsBody>
     </DocsPage>
   );

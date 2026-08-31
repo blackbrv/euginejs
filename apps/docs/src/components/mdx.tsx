@@ -4,6 +4,7 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import type { MDXComponents } from "mdx/types";
 import { CodeFromFile } from "@/components/CodeFromFile";
 import { EugineDemo } from "@/components/EugineDemo";
+import { PackageTable } from "@/components/PackageTable";
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -14,6 +15,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Cards,
     CodeFromFile,
     EugineDemo,
+    PackageTable,
     ...components,
   };
 }
