@@ -52,11 +52,17 @@ Props are attacker-controlled in any multi-tenant product. Interpolating one int
 escaping is an XSS hole:
 
 ```ts
-import { escapeAttribute, escapeHtml, sanitizeUrl } from "eugine/server";
+import { attributesToHtml, escapeAttribute, escapeHtml, sanitizeUrl } from "eugine/server";
 ```
 
 `sanitizeUrl` rejects `javascript:` and other script-bearing schemes — apply it to anything that
-becomes an `href`, `src`, or `action`.
+becomes an `href`, `src`, or `action`. `attributesToHtml` does all of this for a whole props object
+at once: it rejects syntactically unsafe attribute names, drops known inline event-handler
+attributes (`onclick`, `onerror`, ...) outright, and runs `href`/`src`/`action`/`formaction`/
+`xlink:href` through `sanitizeUrl` automatically — safe to call directly on attacker-influenced
+node props. It
+only recognizes those specific URL-bearing attribute names, though; a custom prop meant to become a
+URL still needs its own `sanitizeUrl()` call.
 
 ## Styles
 
@@ -68,3 +74,5 @@ object through wholesale.
 
 `editor.use()` runs plugin code with your application's privileges. It is not a sandbox. Never
 load a plugin named or supplied by document content.
+
+See the [Error Reference](/docs/advanced/errors) for what each failure mode above actually throws.
