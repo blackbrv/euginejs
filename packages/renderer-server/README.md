@@ -21,6 +21,20 @@ registry.register({
 const html = renderToString(document, { registry, data: { user: { name: "James" } } });
 ```
 
+`renderToString` returns a **fragment**, for embedding into an existing template. For a byte-ready,
+standalone `.html` file (`<!doctype html>`/`<head>`/`<body>` and all), use `renderToPage` instead —
+it calls `renderToString` internally with the same options and wraps the result:
+
+```ts
+import { renderToPage } from "@eugine/renderer-server";
+
+const page = renderToPage(document, {
+  registry,
+  title: "My site",
+  css: "body { font-family: sans-serif; }",
+});
+```
+
 ## Security
 
 Every node's `type` is resolved strictly against the `ComponentRegistry` you pass in — this

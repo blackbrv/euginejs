@@ -1,0 +1,87 @@
+---
+title: HTML Export
+description: Turning a document into a fragment, or a byte-ready file.
+---
+
+`@eugine/renderer-server` (also available as `eugine/server`) is what "export to HTML" means in
+Eugine — there is no separate `editor.exportHTML()` method, because rendering is deliberately not
+something the `Editor` knows about (see [Renderer split](/docs/concepts/rendering)). Two functions
+cover the two things "export" usually means:
+
+| Function | Returns | Use it for |
+| --- | --- | --- |
+| `renderToString(document, options)` | An HTML **fragment** | Embedding into a template, a CMS, a Next.js Server Component — anywhere the `<html>`/`<head>`/`<body>` shell already exists |
+| `renderToPage(document, options)` | A complete, standalone HTML **document** | A downloadable `.html` file, a static site generator's output, an HTTP response body with no surrounding template |
+
+## Basic usage
+
+<CodeFromFile file="rendering" region="server" />
+
+Same document, same registry, wrapped into a full page:
+
+<CodeFromFile file="rendering" region="export" />
+
+`renderToPage()` calls `renderToString()` internally with the options you give it (`registry`,
+`data`, `onMissingComponent` all pass straight through), then wraps the result in
+`<!doctype html><html lang="..."><head>...</head><body>...</body></html>`. `title`, `css`, `head`,
+and `bodyAttributes` are all optional — omit `title` and no `<title>` tag is emitted at all, rather
+than an empty one.
+
+## Saving the result
+
+Both functions return a plain string — write it wherever a string belongs:
+
+```ts
+import { writeFile } from "node:fs/promises";
+
+await writeFile("dist/index.html", exportStandalonePage(), "utf8");
+```
+
+## Why `renderToString()` doesn't wrap the page itself
+
+A document's root component might already render a full layout — some hosts register a `"root"`
+component whose `render` function returns `<html>...</html>` directly, for a document meant to
+*be* the whole page. `renderToString()` staying a fragment means it never double-wraps that case
+and never forces a shell on a host embedding into a template that already has one. `renderToPage()`
+exists specifically for the opposite case: you want the shell, and you want it now.
+
+## CSS
+
+Eugine has no CSS pipeline of its own, in either function. A component's `render` function decides
+how (or whether) to emit `styles` — most hosts serialize the `styles` object to an inline `style`
+attribute in their own render function. For page-level CSS (a design system's base styles, a
+Tailwind build's output, a CSS reset), `renderToPage()`'s `css` option inlines a `<style>` tag
+verbatim — pass it whatever your own build already produced. It is not escaped, on purpose: it is
+your own trusted stylesheet text, not something document-provided.
+
+## Assets
+
+Same answer as CSS: there is no asset pipeline. An image, font, or icon reference is just another
+prop (`props.src`, typically) that your component's `render` function turns into a `<img src="...">`
+or similar — resolve it against whatever asset host/CDN you use *before* it ever lands in a node's
+props, and sanitize it the same way you would any other URL prop (see
+[Security](/docs/advanced/security)).
+
+## Custom and unsupported components
+
+Every node's `type` resolves against the `ComponentRegistry` you pass in — the same registry, the
+same resolution, in both functions. A `type` with no matching registration is handled by
+`onMissingComponent` (`"throw" | "omit" | "placeholder"`, default `"placeholder"` — an inert,
+escaped HTML comment). There is no way for a document to name a component that gets imported or
+executed; an unrecognized type is always inert data, never code.
+
+## Integrating into a server
+
+For rendering as part of an existing app (a Next.js Server Component, an Express route, any
+framework that already owns the surrounding HTML) — see [Server Rendering](/docs/guides/ssr) and
+[Next.js](/docs/guides/nextjs), which both use `renderToString()`'s fragment output directly.
+
+## Limitations
+
+- **No CSS or asset pipeline.** Both are host-supplied strings/props, by design (see above) — not
+  a gap intended to be filled by a future version of these two functions themselves.
+- **No pagination, sitemap, or multi-document batching.** `renderToPage()`/`renderToString()` each
+  render one `EugineDocument`; generating a whole site is a loop your own code writes.
+- **Unsupported nodes never fail silently by default.** `onMissingComponent` defaults to
+  `"placeholder"`, not `"omit"` — an unregistered type shows up as a visible HTML comment in the
+  output unless you choose otherwise.

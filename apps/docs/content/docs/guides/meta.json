@@ -1,4 +1,4 @@
 {
   "title": "Guides",
-  "pages": ["react", "nextjs", "ssr", "storage", "versioning", "collaboration"]
+  "pages": ["react", "nextjs", "ssr", "html-export", "storage", "versioning", "collaboration"]
 }
