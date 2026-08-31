@@ -59,14 +59,40 @@ export function createEmptyDocument(rootType = "root"): EugineDocument {
   };
 }
 
+/**
+ * Own-property existence check for a nodes map. Plain `nodes[id]` truthiness
+ * checks are wrong here: `id` can be attacker-influenced (a remote operation,
+ * a loaded document, a pasted snapshot), and every object inherits members
+ * like `constructor`/`toString` from `Object.prototype` that read back
+ * truthy despite never having been inserted. Object.entries()/for-in already
+ * only see own-enumerable keys, so this only matters for direct `[id]` reads.
+ */
+function hasOwn<T>(obj: Record<string, T>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+/**
+ * `"__proto__"` is not a normal own property: on a plain object, assigning to
+ * it via `nodes[id] = value` (bracket notation with a variable key) invokes
+ * the legacy `Object.prototype.__proto__` accessor setter instead of storing
+ * an entry, replacing the *entire nodes map's* prototype. Every function that
+ * introduces a brand-new id into a nodes map (insertNode, restoreSubtree)
+ * must reject it before ever assigning — hasOwn() alone is not enough,
+ * because the corruption happens on write, not on a later read.
+ */
+function assertSafeNodeId(id: string): void {
+  if (id === "__proto__") {
+    throw invalidDocument(`"${id}" is not a valid node id.`, { id });
+  }
+}
+
 export function getNode(document: EugineDocument, id: string): EugineNode {
-  const node = document.nodes[id];
-  if (!node) throw nodeNotFound(id);
-  return node;
+  if (!hasOwn(document.nodes, id)) throw nodeNotFound(id);
+  return document.nodes[id]!;
 }
 
 export function hasNode(document: EugineDocument, id: string): boolean {
-  return Boolean(document.nodes[id]);
+  return hasOwn(document.nodes, id);
 }
 
 export function getRoot(document: EugineDocument): EugineNode {
@@ -128,8 +154,9 @@ export function insertNode(
   parentId: string,
   index?: number,
 ): EugineDocument {
+  assertSafeNodeId(node.id);
   const parent = getNode(document, parentId);
-  if (document.nodes[node.id] && document.nodes[node.id] !== node) {
+  if (hasOwn(document.nodes, node.id) && document.nodes[node.id] !== node) {
     throw invalidDocument(`Node id "${node.id}" already exists in the document.`, { id: node.id });
   }
 
@@ -180,27 +207,41 @@ export function restoreSubtree(
   parentId: string,
   indexOrOptions?: number | RestoreSubtreeOptions,
 ): EugineDocument {
+  // `rootId` is written to unconditionally below (`nodes[rootId] = ...`) even
+  // when it has no matching entry in `snapshot` (e.g. an "attach" operation
+  // whose `nodes` map happens to be empty) — so it needs its own check,
+  // independent of the per-key checks on `snapshot`'s entries.
+  assertSafeNodeId(rootId);
+
   const options: RestoreSubtreeOptions =
     typeof indexOrOptions === "number" || indexOrOptions === undefined ? { index: indexOrOptions } : indexOrOptions;
   const { index, overwriteExisting = true } = options;
 
   const nodes = { ...document.nodes };
   for (const [id, node] of Object.entries(snapshot)) {
-    if (!overwriteExisting && nodes[id]) continue;
+    assertSafeNodeId(id);
+    if (!overwriteExisting && hasOwn(nodes, id)) continue;
     nodes[id] = node;
   }
 
-  const parent = nodes[parentId];
-  if (!parent) throw nodeNotFound(parentId);
+  if (!hasOwn(nodes, parentId)) throw nodeNotFound(parentId);
+  const parent = nodes[parentId]!;
+  // `rootId` must resolve to a real node — either just written from the
+  // snapshot above, or already live in the document — before the final
+  // `nodes[rootId] = { ...nodes[rootId], ... }` write below. Without this, a
+  // malformed call (an "attach" operation whose `nodes` snapshot is empty and
+  // whose `rootId` doesn't already exist) would spread `undefined` into a
+  // node missing `id`/`type`/`children` and attach that into the tree.
+  if (!hasOwn(nodes, rootId)) throw nodeNotFound(rootId);
 
   // Restoring must be idempotent: the same operation can arrive twice over a
   // network, and an undo can race a remote re-creation of the same id. If the
   // subtree root is already attached anywhere, re-listing it as a child here
   // would give it two parents and fail validateDocument().
-  const liveRoot = document.nodes[rootId];
+  const liveRoot = hasOwn(document.nodes, rootId) ? document.nodes[rootId] : undefined;
   const alreadyAttached =
     parent.children.includes(rootId) ||
-    (liveRoot?.parent != null && Boolean(nodes[liveRoot.parent]?.children.includes(rootId)));
+    (liveRoot?.parent != null && hasOwn(nodes, liveRoot.parent) && Boolean(nodes[liveRoot.parent]!.children.includes(rootId)));
   if (alreadyAttached) return { ...document, nodes };
 
   const children = parent.children.slice();
@@ -382,7 +423,7 @@ export function invertPatch(
   const restore: Record<string, unknown> = {};
   const unset: string[] = [];
   for (const key of touched) {
-    if (Object.prototype.hasOwnProperty.call(previous, key)) restore[key] = previous[key];
+    if (hasOwn(previous, key)) restore[key] = previous[key];
     else unset.push(key);
   }
   return { patch: restore, unset };
@@ -413,7 +454,14 @@ function remapSubtreeIds(
   idFactory: IdFactory = defaultIdFactory,
 ): { idMap: Map<string, string>; nodes: Record<string, EugineNode> } {
   const idMap = new Map<string, string>();
-  for (const id of ids) idMap.set(id, idFactory());
+  for (const id of ids) {
+    const newId = idFactory();
+    // The default factory can never produce this, but a host-supplied one is
+    // just as capable of introducing an unsafe id here as insertNode's caller
+    // is directly — same corruption, same guard.
+    assertSafeNodeId(newId);
+    idMap.set(id, newId);
+  }
 
   const nodes: Record<string, EugineNode> = {};
   for (const id of ids) {
@@ -459,6 +507,12 @@ export function cloneSubtreeSnapshot(
   rootId: string,
   idFactory?: IdFactory,
 ): { rootId: string; nodes: Record<string, EugineNode> } {
+  // `rootId` must be a key of the snapshot: the `!` below would otherwise be
+  // on `undefined` and spread that into a node missing id/type/children —
+  // the same malformed-node class restoreSubtree was hardened against.
+  if (!hasOwn(snapshot, rootId)) {
+    throw invalidDocument(`Snapshot has no root "${rootId}".`, { rootId });
+  }
   const { idMap, nodes: cloned } = remapSubtreeIds(snapshot, Object.keys(snapshot), idFactory);
   const newRootId = idMap.get(rootId)!;
   cloned[newRootId] = { ...cloned[newRootId]!, parent: null };
@@ -502,21 +556,44 @@ export function unwrapNode(document: EugineDocument, id: string): EugineDocument
   return doc;
 }
 
+/** A tree deep enough to overflow the call stack of the recursive renderers/tree-walkers before it overflows this iterative check. */
+const DEFAULT_MAX_DEPTH = 2000;
+
+export interface ValidateDocumentOptions {
+  /**
+   * Maximum allowed nesting depth (root is depth 0). `renderToDom`,
+   * `renderToString`, and `walk()` (and everything built on it — remove,
+   * duplicate, copy/paste) all recurse per level, so an unbounded document
+   * can crash them with a stack overflow even though it's structurally
+   * valid. Defaults to 2000, comfortably below every engine's call-stack
+   * limit; pass `Infinity` to disable the check for a host that has its own
+   * depth guarantees.
+   */
+  maxDepth?: number;
+}
+
 /** Structural + referential integrity checks described in the PRD's "Critical Invariants". */
-export function validateDocument(document: EugineDocument): void {
-  if (!document.nodes[document.rootId]) {
+export function validateDocument(document: EugineDocument, options: ValidateDocumentOptions = {}): void {
+  if (!hasOwn(document.nodes, document.rootId)) {
     throw invalidDocument(`Document root "${document.rootId}" does not exist in nodes map.`);
   }
   const seenAsChild = new Map<string, string>();
   for (const [id, node] of Object.entries(document.nodes)) {
+    // insertNode/restoreSubtree reject "__proto__" the moment a mutation
+    // would introduce it, but a whole document loaded via loadDocument()/
+    // createEditor({ initialDocument }) skips those functions entirely — it
+    // arrives with `nodes` already built. Reject it here too, or a document
+    // can be *loaded* with a "__proto__" node that every later mutation
+    // through insertNode/restoreSubtree then refuses to touch.
+    assertSafeNodeId(id);
     if (node.id !== id) {
       throw invalidDocument(`Node stored under key "${id}" has mismatched id "${node.id}".`);
     }
     for (const childId of node.children) {
-      const child = document.nodes[childId];
-      if (!child) {
+      if (!hasOwn(document.nodes, childId)) {
         throw invalidDocument(`Node "${id}" references missing child "${childId}".`);
       }
+      const child = document.nodes[childId]!;
       if (child.parent !== id) {
         throw invalidDocument(`Node "${childId}" parent pointer does not match its declared parent "${id}".`);
       }
@@ -531,5 +608,44 @@ export function validateDocument(document: EugineDocument): void {
   }
   if (document.nodes[document.rootId]!.parent !== null) {
     throw invalidDocument("The root node must not have a parent.");
+  }
+
+  // A second full pass, deliberately: walked iteratively (breadth-first)
+  // from the root, not folded into the loop above and not recursive.
+  //
+  // Recursive would just move the stack-overflow risk into the validator
+  // itself. Folding it into the loop above by memoizing an upward walk of
+  // `.parent` per node (cheaper, one pass) was tried and rejected — that loop
+  // iterates every id in `document.nodes`, including ones the checks above
+  // never require to be reachable from root, and this file has no rule
+  // against two disconnected nodes pointing at each other as parent/child
+  // (each still has exactly one parent, so the single-parent check above
+  // doesn't catch it). An upward walk from such an island loops forever.
+  // Starting *only* from the root and walking down through already-confirmed
+  // children avoids that: everything visited here is provably reachable from
+  // root, and the invariants just enforced (single parent, root has none)
+  // make the root-reachable portion a genuine tree, so this always
+  // terminates — at the cost of being a second O(n) pass rather than folded
+  // into the first.
+  const maxDepth = options.maxDepth ?? DEFAULT_MAX_DEPTH;
+  if (Number.isFinite(maxDepth)) {
+    let frontier = [document.rootId];
+    let depth = 0;
+    while (frontier.length > 0) {
+      if (depth > maxDepth) {
+        throw invalidDocument(
+          `Document nesting depth exceeds the maximum of ${maxDepth}. This limit exists to prevent a ` +
+            `stack-overflow denial of service in the recursive renderers; pass { maxDepth: Infinity } to ` +
+            `validateDocument() if this document's depth is intentional.`,
+          { maxDepth },
+        );
+      }
+      const next: string[] = [];
+      for (const id of frontier) {
+        for (const childId of document.nodes[id]!.children) next.push(childId);
+      }
+      frontier = next;
+      depth++;
+    }
   }
 }

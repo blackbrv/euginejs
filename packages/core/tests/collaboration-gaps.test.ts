@@ -236,6 +236,31 @@ describe("G4 — a remote op against a vanished node is dropped, not fatal", () 
     ).toThrow(/was not found in the document/);
   });
 
+  it("drops a batch that would exceed the max nesting depth instead of throwing", () => {
+    const editor = createEditor({ maxDepth: 3 });
+    editor.registerComponent({ type: "box", accepts: "*" });
+
+    // A chain root → n1 (1) → n2 (2) → n3 (3) → n4 (4) whose tail would push
+    // past maxDepth=3. applyOperations does not enforce depth itself, so this
+    // used to surface as an EUGENE_DOCUMENT_INVALID throw out of applyRemote,
+    // crashing the sync loop. It must instead drop the whole batch.
+    const n1 = createNode("box", { id: "n1" });
+    const n2 = createNode("box", { id: "n2" });
+    const n3 = createNode("box", { id: "n3" });
+    const n4 = createNode("box", { id: "n4" });
+
+    const result = editor.applyRemote([
+      { type: "insert", node: n1, parentId: "root" },
+      { type: "insert", node: n2, parentId: "n1" },
+      { type: "insert", node: n3, parentId: "n2" },
+      { type: "insert", node: n4, parentId: "n3" },
+    ]);
+
+    expect(result.applied).toHaveLength(0);
+    expect(result.dropped).toHaveLength(4);
+    for (const id of ["n1", "n2", "n3", "n4"]) expect(hasNode(editor.getDocument(), id)).toBe(false);
+  });
+
   it("is idempotent when a transport redelivers the same operation", () => {
     const editor = makeEditor();
     const op: EugineOperation = { type: "insert", node: createNode("box", { id: "once" }), parentId: "root" };

@@ -1,12 +1,12 @@
 import { EugineError } from "./errors.js";
-import { validateDocument } from "./tree.js";
+import { validateDocument, type ValidateDocumentOptions } from "./tree.js";
 import { CURRENT_SCHEMA_VERSION, type EugineDocument, type SerializedDocument } from "./types.js";
 
 const ENGINE_VERSION = "0.1.0";
 
 /** Wraps a document in the canonical, versioned envelope used for persistence. */
-export function serializeDocument(document: EugineDocument): SerializedDocument {
-  validateDocument(document);
+export function serializeDocument(document: EugineDocument, options: ValidateDocumentOptions = {}): SerializedDocument {
+  validateDocument(document, options);
   return {
     schemaVersion: document.schemaVersion,
     engine: "eugine",
@@ -82,7 +82,7 @@ export function isSerializedDocument(value: unknown): value is SerializedDocumen
   return typeof doc.schemaVersion === "number" && typeof doc.rootId === "string" && typeof doc.nodes === "object" && doc.nodes !== null;
 }
 
-export interface LoadDocumentOptions {
+export interface LoadDocumentOptions extends ValidateDocumentOptions {
   migrations?: MigrationRegistry;
 }
 
@@ -108,7 +108,7 @@ export function loadDocument(serialized: SerializedDocument, options: LoadDocume
   }
 
   try {
-    validateDocument(document);
+    validateDocument(document, { maxDepth: options.maxDepth });
   } catch (error) {
     throw new EugineError("EUGINE_SERIALIZATION_FAILED", "The document failed structural validation after loading.", {
       cause: error,

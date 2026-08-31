@@ -38,7 +38,13 @@ if (!isSerializedDocument(body)) {
 ```
 
 Structural validation (`validateDocument`) runs on load and on every store write, so a document
-with orphaned children or a node claimed by two parents is rejected rather than half-rendered.
+with orphaned children or a node claimed by two parents is rejected rather than half-rendered. It
+also rejects a node id of `"__proto__"` (a plain-object write to that key corrupts the object's
+prototype rather than storing an entry — closed at every point a new id can enter a document: load,
+insert, paste, and a remote "attach" operation) and a document nested deeper than `maxDepth`
+(default 2000), which would otherwise stack-overflow the recursive renderers. Pass
+`{ maxDepth: Infinity }` to `validateDocument()`/`createEditor()` if your documents are
+legitimately deeper than that.
 
 ## Escaping in renderers
 

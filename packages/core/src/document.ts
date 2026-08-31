@@ -2,6 +2,17 @@ import { EventBus } from "./events.js";
 import { createEmptyDocument, validateDocument } from "./tree.js";
 import { documentRevision, type EugineDocument } from "./types.js";
 
+export interface DocumentStoreOptions {
+  /**
+   * Forwarded to every validateDocument() call this store makes (on
+   * construction, and on every set() unless a call overrides it) — see
+   * ValidateDocumentOptions.maxDepth. Configure this once here, rather than
+   * on every set()/command execution, for a host whose documents are
+   * legitimately deeper than the default limit.
+   */
+  maxDepth?: number;
+}
+
 /**
  * Who caused a change, and whether it came from this client or another one.
  *
@@ -19,6 +30,8 @@ export interface ChangeOrigin {
 
 export interface SetDocumentOptions {
   validate?: boolean;
+  /** Overrides the store's configured maxDepth (see DocumentStoreOptions) for this call only. */
+  maxDepth?: number;
   /**
    * Whether to advance `document.revision`. Defaults to true. `editor.load()`
    * passes false so a freshly loaded document keeps the revision the server
@@ -40,10 +53,12 @@ export interface DocumentStoreEvents {
 export class DocumentStore {
   private current: EugineDocument;
   private defaultOrigin: ChangeOrigin | undefined;
+  private readonly maxDepth: number | undefined;
   readonly events = new EventBus<DocumentStoreEvents>();
 
-  constructor(initial: EugineDocument = createEmptyDocument()) {
-    validateDocument(initial);
+  constructor(initial: EugineDocument = createEmptyDocument(), options: DocumentStoreOptions = {}) {
+    this.maxDepth = options.maxDepth;
+    validateDocument(initial, { maxDepth: this.maxDepth });
     this.current = initial;
   }
 
@@ -74,7 +89,7 @@ export class DocumentStore {
 
   /** Replaces the document wholesale (used by commands and editor.load()). */
   set(next: EugineDocument, options: SetDocumentOptions = {}): void {
-    if (options.validate !== false) validateDocument(next);
+    if (options.validate !== false) validateDocument(next, { maxDepth: options.maxDepth ?? this.maxDepth });
     const previous = this.current;
     if (previous === next) return;
 

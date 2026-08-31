@@ -13,6 +13,7 @@ import {
   WrapNodeCommand,
 } from "./commands/index.js";
 import { DocumentStore, type ChangeOrigin } from "./document.js";
+import { EugineError } from "./errors.js";
 import { EventBus } from "./events.js";
 import { History, type Transaction } from "./history.js";
 import { createId } from "./id.js";
@@ -20,13 +21,14 @@ import { applyOperations, type EugineOperation, type OperationConflictPolicy } f
 import { EuginePlugin, PluginManager } from "./plugin.js";
 import { ComponentRegistry } from "./registry.js";
 import { Selection } from "./selection.js";
-import { LoadDocumentOptions, MigrationRegistry, loadDocument, serializeDocument } from "./serialization.js";
+import { LoadDocumentOptions, MigrationRegistry, isSerializedDocument, loadDocument, serializeDocument } from "./serialization.js";
 import { StorageManager, type SaveOptions, type SaveResult } from "./storage.js";
 import {
   captureSubtree,
   cloneSubtreeSnapshot,
   createEmptyDocument,
   getNode,
+  hasNode,
   type CreateNodeOptions,
   type IdFactory,
   type SubtreeSnapshot,
@@ -99,10 +101,13 @@ export interface CreateEditorOptions {
    * throw, which is a hard failure in the sync loop.
    */
   idFactory?: IdFactory;
-}
-
-function isSerializedDocument(value: EugineDocument | SerializedDocument): value is SerializedDocument {
-  return "engine" in value;
+  /**
+   * Overrides the default document nesting-depth limit enforced on every
+   * mutation (see ValidateDocumentOptions.maxDepth) — for a host whose
+   * documents are legitimately deeper than the default. Applies to the
+   * initial document and every subsequent store write.
+   */
+  maxDepth?: number;
 }
 
 /**
@@ -123,11 +128,13 @@ export class Editor {
   private readonly idFactory: IdFactory;
   private readonly plugins: PluginManager<Editor>;
   private readonly disposers: Array<() => void> = [];
+  private readonly maxDepth: number | undefined;
 
   constructor(options: CreateEditorOptions = {}) {
     this.migrations = options.migrations ?? new MigrationRegistry();
     this.clientId = options.clientId;
     this.idFactory = options.idFactory ?? (() => createId("node"));
+    this.maxDepth = options.maxDepth;
 
     for (const definition of options.components ?? []) {
       this.registry.register(definition);
@@ -137,12 +144,14 @@ export class Editor {
     // The document's root node is an implicit container: unless the host
     // explicitly registered a component for its type, treat it as accepting
     // any child so createEditor() works out of the box with no boilerplate.
-    const rootType = initialDocument.nodes[initialDocument.rootId]?.type;
+    const rootType = hasNode(initialDocument, initialDocument.rootId)
+      ? getNode(initialDocument, initialDocument.rootId).type
+      : undefined;
     if (rootType && !this.registry.has(rootType)) {
       this.registry.registerOrReplace({ type: rootType, label: "Root", accepts: "*" });
     }
 
-    this.store = new DocumentStore(initialDocument);
+    this.store = new DocumentStore(initialDocument, { maxDepth: options.maxDepth });
     this.history = new History(this.store, { clientId: options.clientId });
     this.plugins = new PluginManager(this);
 
@@ -156,7 +165,7 @@ export class Editor {
         // before re-emitting "document.change", guarantees selection is
         // already consistent with the document by the time any listener
         // (including the host's own) sees the change.
-        const stale = this.selection.get().filter((id) => !document.nodes[id]);
+        const stale = this.selection.get().filter((id) => !hasNode(document, id));
         if (stale.length > 0) this.selection.deselect(stale);
         this.events.emit("document.change", { document, previous, origin });
       }),
@@ -180,7 +189,7 @@ export class Editor {
   private resolveInitialDocument(options: CreateEditorOptions): EugineDocument {
     if (!options.document) return createEmptyDocument();
     return isSerializedDocument(options.document)
-      ? loadDocument(options.document, { migrations: this.migrations })
+      ? loadDocument(options.document, { migrations: this.migrations, maxDepth: options.maxDepth })
       : options.document;
   }
 
@@ -336,19 +345,33 @@ export class Editor {
    *
    * Deliberately bypasses history: a remote edit must never land on this
    * user's undo stack, or their next Ctrl+Z reverts someone else's work. It
-   * also never throws on a vanished target by default — a remote op arriving
-   * for a node this client already deleted is an ordinary race, and aborting
-   * would take the sync loop down with it. Dropped operations are returned so
-   * the host can decide whether they matter.
+   * also never throws by default — a remote op arriving for a node this client
+   * already deleted is an ordinary race, and (like a batch that would exceed
+   * the max nesting depth) aborting would take the sync loop down with it.
+   * Dropped operations are returned so the host can decide whether they matter.
    */
   applyRemote(operations: readonly EugineOperation[], options: ApplyRemoteOptions = {}): ApplyRemoteResult {
-    const { applied, dropped, document } = applyOperations(this.store.get(), operations, {
+    let { applied, dropped, document } = applyOperations(this.store.get(), operations, {
       policy: options.policy ?? "drop",
     });
 
     if (applied.length > 0) {
       const origin: ChangeOrigin = { clientId: options.clientId, remote: true };
-      this.store.set(document, { origin });
+      try {
+        this.store.set(document, { origin });
+      } catch (error) {
+        // applyOperations does not enforce maxDepth itself; store.set validates
+        // the merged document and throws EUGINE_DOCUMENT_INVALID if the remote
+        // batch would push it past the nesting limit. That is a sync-loop
+        // concern, not a local editing error — drop the whole batch rather than
+        // crashing the loop, consistent with how a vanished target is dropped.
+        if (error instanceof EugineError && error.code === "EUGINE_DOCUMENT_INVALID") {
+          dropped = dropped.concat(applied);
+          applied = [];
+        } else {
+          throw error;
+        }
+      }
     }
 
     this.events.emit("document.remote", { applied, dropped });
@@ -358,7 +381,7 @@ export class Editor {
   // --- Serialization --------------------------------------------------------
 
   serialize(): SerializedDocument {
-    return serializeDocument(this.store.get());
+    return serializeDocument(this.store.get(), { maxDepth: this.maxDepth });
   }
 
   /**
@@ -378,11 +401,16 @@ export class Editor {
   }
 
   load(serialized: SerializedDocument, options: LoadDocumentOptions = {}): void {
-    const document = loadDocument(serialized, { migrations: options.migrations ?? this.migrations });
+    const document = loadDocument(serialized, {
+      migrations: options.migrations ?? this.migrations,
+      maxDepth: options.maxDepth ?? this.maxDepth,
+    });
     // Keep the revision the document arrived with: bumping it here would make
     // this client's very first save look like it was based on a revision the
-    // server has never seen.
-    this.store.set(document, { bumpRevision: false });
+    // server has never seen. loadDocument() above already validated the
+    // document (including any maxDepth override), so skip the redundant second
+    // validation that store.set() would otherwise run.
+    this.store.set(document, { bumpRevision: false, validate: false });
     this.history.clear();
     this.selection.clear();
     this.events.emit("document.load", { document });
