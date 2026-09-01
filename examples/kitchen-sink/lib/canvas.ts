@@ -1,6 +1,8 @@
 import { getAncestors, getNode, getParent, ComponentRegistry, type Editor, type EugineNode } from "eugine";
 import { getDropPosition, renderToDom, type DomComponentRenderer, type DomRenderer, type DropPosition } from "eugine/renderer";
 import { COMPONENT_SCHEMAS } from "./schema";
+import type { PokemonDataPlugin, PokemonNodeState } from "./pokemonDataPlugin";
+import type { PokemonSummary } from "./pokeApi";
 import { applyNodeStyles } from "./styleFields";
 
 const NEW_COMPONENT_MIME = "application/x-eugine-new-component";
@@ -111,8 +113,34 @@ function placeholder(text: string): HTMLElement {
   return el;
 }
 
+function renderPokemonCards(items: PokemonSummary[]): HTMLElement[] {
+  return items.map((pokemon) => {
+    const figure = document.createElement("figure");
+    figure.className = "ks-pokemon-card";
+    const img = document.createElement("img");
+    img.src = pokemon.spriteUrl;
+    img.alt = pokemon.name;
+    img.loading = "lazy";
+    const caption = document.createElement("figcaption");
+    caption.textContent = `${pokemon.name} #${pokemon.id}`;
+    figure.append(img, caption);
+    return figure;
+  });
+}
+
+function pokemonSkeleton(limit: number): HTMLElement[] {
+  const boxes: HTMLElement[] = [];
+  for (let i = 0; i < limit; i++) {
+    const box = document.createElement("div");
+    box.className = "ks-pokemon-skeleton";
+    boxes.push(box);
+  }
+  return boxes;
+}
+
 function buildRegistry(
   editor: Editor,
+  pokemonPlugin: PokemonDataPlugin,
   onSelect: (id: string, additive: boolean) => void,
   onContextMenu: (id: string, clientX: number, clientY: number) => void,
 ): ComponentRegistry<DomComponentRenderer> {
@@ -130,7 +158,7 @@ function buildRegistry(
       },
     }) satisfies { render: DomComponentRenderer };
 
-  registry.register({ type: "root", ...container("div", "ks-canvas-root", "Drag components here") });
+  registry.register({ type: "root", ...container("div", "ks-canvas-root", "Drag a component from the left to start building your page") });
   registry.register({ type: "section", ...container("section", "ks-section", "Drop into this section") });
   registry.register({ type: "container", ...container("div", "ks-container", "Drop into this container") });
   registry.register({ type: "grid", ...container("div", "ks-grid", "Drop up to 4 cards") });
@@ -179,6 +207,130 @@ function buildRegistry(
     },
   });
 
+  registry.register({
+    type: "pokemon-carousel",
+    render: (props, _c, ctx) => {
+      const el = document.createElement("div");
+      el.className = "ks-pokemon-carousel";
+      const wrap = document.createElement("div");
+      wrap.className = "ks-pokemon-track";
+
+      const limit = Number(props.pageSize ?? 10) || 10;
+
+      const fillAmbient = (target: HTMLElement, state?: PokemonNodeState) => {
+        target.innerHTML = "";
+        if (state?.items.length) {
+          renderPokemonCards(state.items).forEach((c) => target.appendChild(c));
+        } else if (state?.error) {
+          const err = document.createElement("div");
+          err.className = "ks-pokemon-error";
+          err.textContent = `Failed to load: ${state.error}`;
+          target.appendChild(err);
+        } else {
+          pokemonSkeleton(limit).forEach((c) => target.appendChild(c));
+        }
+      };
+
+      fillAmbient(wrap, pokemonPlugin.getState(ctx.node.id));
+      el.appendChild(wrap);
+
+      const makeBtn = (label: string, dir: number) => {
+        const btn = document.createElement("button");
+        btn.className = "ks-pokemon-carousel-btn";
+        btn.textContent = label;
+        btn.addEventListener("click", () => {
+          wrap.scrollBy({ left: dir * 220, behavior: "smooth" });
+        });
+        return btn;
+      };
+      el.appendChild(makeBtn("‹", -1));
+      el.prepend(makeBtn("›", 1));
+
+      // Rebuild the track's contents once a fetch resolves — the same
+      // bypass-history-and-mutate-the-live-element pattern `previewStyle`
+      // uses (see lib/panels.ts). The unsubscribe is intentionally leaked on
+      // node removal: the DOM renderer has no unmount hook, so the orphan
+      // entry is a harmless kitchen-sink limitation, not worth GC machinery.
+      pokemonPlugin.subscribe(ctx.node.id, () => {
+        const host = pokemonPlugin.getRenderer()?.getElement(ctx.node.id);
+        if (!(host instanceof HTMLElement)) return;
+        const hostWrap = host.querySelector<HTMLElement>(".ks-pokemon-track");
+        if (!hostWrap) return;
+        fillAmbient(hostWrap, pokemonPlugin.getState(ctx.node.id));
+      });
+
+      makeInteractive(el, ctx.node, editor, onSelect, onContextMenu);
+      return el;
+    },
+  });
+
+  registry.register({
+    type: "pokemon-grid",
+    render: (props, _c, ctx) => {
+      const el = document.createElement("div");
+      el.className = "ks-pokemon-grid";
+      const inner = document.createElement("div");
+      inner.className = "ks-pokemon-grid-inner";
+
+      const limit = Number(props.pageSize ?? 8) || 8;
+
+      const fillInner = (state?: PokemonNodeState) => {
+        inner.innerHTML = "";
+        if (state?.items.length) {
+          renderPokemonCards(state.items).forEach((c) => inner.appendChild(c));
+        } else if (state?.error) {
+          const err = document.createElement("div");
+          err.className = "ks-pokemon-error";
+          err.textContent = `Failed to load: ${state.error}`;
+          inner.appendChild(err);
+        } else {
+          pokemonSkeleton(limit).forEach((c) => inner.appendChild(c));
+        }
+      };
+
+      fillInner(pokemonPlugin.getState(ctx.node.id));
+      el.appendChild(inner);
+
+      const footer = document.createElement("div");
+      footer.className = "ks-pokemon-grid-footer";
+      el.appendChild(footer);
+
+      const refreshFooter = () => {
+        const nextState = pokemonPlugin.getState(ctx.node.id);
+        footer.innerHTML = "";
+        if (nextState?.error) {
+          const err = document.createElement("div");
+          err.className = "ks-pokemon-error";
+          err.textContent = `Failed to load: ${nextState.error}`;
+          footer.appendChild(err);
+        }
+        if (nextState?.hasMore && !nextState?.loading) {
+          const btn = document.createElement("button");
+          btn.className = "ks-pokemon-loadmore-btn";
+          btn.textContent = "Load more";
+          btn.addEventListener("click", () => {
+            void pokemonPlugin.loadMore(ctx.node.id);
+          });
+          footer.appendChild(btn);
+        }
+      };
+      refreshFooter();
+
+      pokemonPlugin.subscribe(ctx.node.id, () => {
+        const host = pokemonPlugin.getRenderer()?.getElement(ctx.node.id);
+        if (!(host instanceof HTMLElement)) return;
+        const hostInner = host.querySelector<HTMLElement>(".ks-pokemon-grid-inner");
+        if (hostInner) {
+          fillInner(pokemonPlugin.getState(ctx.node.id));
+        }
+        refreshFooter();
+      });
+
+      makeInteractive(el, ctx.node, editor, onSelect, onContextMenu);
+      return el;
+    },
+  });
+
   return registry;
 }
 
@@ -205,11 +357,12 @@ function axisFor(parentEl: Element): "vertical" | "horizontal" {
 
 export function mountCanvas(
   editor: Editor,
+  pokemonPlugin: PokemonDataPlugin,
   container: HTMLElement,
   onSelect: (id: string, additive: boolean) => void,
   onContextMenu: (id: string, clientX: number, clientY: number) => void,
 ): CanvasController {
-  const registry = buildRegistry(editor, onSelect, onContextMenu);
+  const registry = buildRegistry(editor, pokemonPlugin, onSelect, onContextMenu);
   const renderer = renderToDom(editor.getDocument(), container, { registry });
 
   const indicator = document.createElement("div");

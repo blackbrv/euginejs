@@ -3,6 +3,7 @@ import type { ComponentDefinition, DropAcceptRule } from "eugine";
 export interface FieldSchema {
   name: string;
   label: string;
+  type?: "text" | "number";
 }
 
 export interface ComponentSchema {
@@ -13,6 +14,10 @@ export interface ComponentSchema {
   defaults: Record<string, unknown>;
   fields: FieldSchema[];
   paletteVisible: boolean;
+  /** Optional single emoji shown before the palette label (matches the 🔒/🙈 layer convention). */
+  icon?: string;
+  /** Optional one-line plain-language description surfaced as a `title` tooltip in the palette. */
+  description?: string;
 }
 
 export const COMPONENT_SCHEMAS: ComponentSchema[] = [
@@ -53,6 +58,26 @@ export const COMPONENT_SCHEMAS: ComponentSchema[] = [
       { name: "label", label: "Label" },
       { name: "href", label: "Link (href)" },
     ],
+    paletteVisible: true,
+  },
+  {
+    type: "pokemon-carousel",
+    label: "Pokémon Carousel",
+    icon: "🎠",
+    description: "A horizontally scrolling row of Pokémon pulled live from the PokeAPI",
+    accepts: "none",
+    defaults: { dataSource: "https://pokeapi.co/api/v2/pokemon", pageSize: 10 },
+    fields: [{ name: "pageSize", label: "Items", type: "number" }],
+    paletteVisible: true,
+  },
+  {
+    type: "pokemon-grid",
+    label: "Pokémon Grid",
+    icon: "🔢",
+    description: "A paginated grid of Pokémon; Load more appends another page",
+    accepts: "none",
+    defaults: { dataSource: "https://pokeapi.co/api/v2/pokemon", pageSize: 8, page: 0 },
+    fields: [{ name: "pageSize", label: "Items", type: "number" }],
     paletteVisible: true,
   },
 ];

@@ -6,6 +6,7 @@ import { ApiStorageAdapter } from "@/lib/apiStorageAdapter";
 import { createAutosavePlugin } from "@/lib/autosavePlugin";
 import { mountCanvas, PALETTE_ITEMS, registerPaletteDrag } from "@/lib/canvas";
 import { showContextMenu } from "@/lib/contextMenu";
+import { createPokemonDataPlugin } from "@/lib/pokemonDataPlugin";
 import { renderEventLog, renderInspector, renderLayers } from "@/lib/panels";
 import { toComponentDefinitions } from "@/lib/schema";
 
@@ -36,9 +37,16 @@ export default function Studio() {
       createAutosavePlugin((nodeCount) => log(`[plugin:autosave] ${nodeCount} nodes (logged only, not published)`)),
     );
 
+    const pokemonPlugin = createPokemonDataPlugin((line) => log(`[plugin:pokemon] ${line}`));
+    editor.use(pokemonPlugin);
+
     const onSelect = (id: string, additive: boolean) => editor.selection.select(id, { additive });
     const onContextMenu = (id: string, clientX: number, clientY: number) => showContextMenu(editor, id, clientX, clientY, onSelect);
-    const canvas = mountCanvas(editor, canvasRef.current!, onSelect, onContextMenu);
+    const canvas = mountCanvas(editor, pokemonPlugin, canvasRef.current!, onSelect, onContextMenu);
+
+    // Same timing as the previewStyle closure below: the renderer must exist
+    // before the plugin can imperatively patch pokemon nodes on the canvas.
+    pokemonPlugin.attachRenderer(canvas.renderer);
 
     const previewStyle = (id: string, property: string, value: string) => {
       const el = canvas.renderer.getElement(id);
@@ -73,7 +81,13 @@ export default function Studio() {
     for (const item of PALETTE_ITEMS) {
       const el = document.createElement("div");
       el.className = "ks-palette-item";
-      el.textContent = item.label;
+      if (item.description) el.title = item.description;
+      const icon = document.createElement("span");
+      icon.className = "ks-palette-icon";
+      icon.textContent = item.icon ?? "";
+      const label = document.createElement("span");
+      label.textContent = item.label;
+      el.append(icon, label);
       registerPaletteDrag(el, item.type);
       el.addEventListener("click", () => onSelect(editor.insert(item.type, editor.getDocument().rootId), false));
       paletteRef.current!.appendChild(el);
