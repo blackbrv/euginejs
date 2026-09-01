@@ -71,7 +71,7 @@ they are not dashboard-only). It consumes `eugine` through the workspace symlink
 whole reason it lives in this repo rather than a separate one — examples run against the working
 tree, not a published release.
 
-Two pieces are load-bearing and easy to break:
+Three pieces are load-bearing and easy to break:
 
 - **Code snippets are never pasted into MDX.** They are read out of real `.ts` files in
   `apps/docs/src/examples/` by the `<CodeFromFile file="..." region="..." />` server component,
@@ -82,6 +82,12 @@ Two pieces are load-bearing and easy to break:
   `scripts/api-frontmatter.mjs`, which lifts each page's `# H1` into frontmatter `title` (Fumadocs
   rejects a page without one, and would otherwise render the heading twice) and writes a collapsed
   `meta.json` per directory. Never edit those files by hand.
+- **The playground SPA ships inside the docs deployment.** `npm run build:docs` builds
+  `apps/playground`, then `apps/docs/scripts/copy-playground.mjs` copies its `dist/` into
+  `apps/docs/public/playground/` (gitignored), where Next serves it at `/playground` (via a rewrite
+  in `apps/docs/next.config.mjs`). `apps/playground/vite.config.ts` sets `base: "/playground/"`
+  for production builds (dev stays at root), so if you change the playground's build output shape
+  or base there, verify `/playground` still loads with working asset URLs on the deployed site.
 
 A JSDoc comment in library source that contains an unfenced `{` becomes an MDX parse error once
 TypeDoc emits it — fence code examples in doc comments (see `SELECTED_ATTRIBUTE` in
