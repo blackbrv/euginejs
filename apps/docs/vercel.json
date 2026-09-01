@@ -4,5 +4,5 @@
   "installCommand": "cd ../.. && npm ci",
   "buildCommand": "cd ../.. && npm run build:docs",
   "outputDirectory": ".next",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages ../playground"
+  "ignoreCommand": "bash scripts/ignore-build.sh"
 }
