@@ -14,7 +14,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present",
-    "build:docs": "npm run build -w @eugine/core -w @eugine/renderer -w @eugine/renderer-server -w @eugine/versioning -w eugine && npm run build -w docs"
+    "build:docs": "npm run build -w @eugine/core -w @eugine/renderer -w @eugine/renderer-server -w @eugine/versioning -w eugine -w playground && node apps/docs/scripts/copy-playground.mjs && npm run build -w docs"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
