@@ -126,6 +126,50 @@ button {
   color: #fff;
   font-size: 13px;
   font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 100ms var(--ease), box-shadow 140ms var(--ease);
+}
+
+.eb-brand-mark:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.eb-brand-mark:active {
+  transform: scale(0.92);
+}
+
+.eb-brand-mark:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Sits right after the brand text — a lightweight way back to the docs
+   without hunting through the toolbar-actions cluster on the other side. */
+.eb-brand-docs-link {
+  margin-left: 2px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition:
+    color 140ms var(--ease),
+    border-color 140ms var(--ease),
+    background-color 140ms var(--ease);
+}
+
+.eb-brand-docs-link:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.eb-brand-docs-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .eb-toolbar-actions {
@@ -157,6 +201,7 @@ button {
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
+  text-decoration: none;
   cursor: pointer;
   transition:
     background-color 140ms var(--ease),

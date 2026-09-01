@@ -17,9 +17,15 @@ const app = document.getElementById("app")!;
 app.innerHTML = `
   <div class="eb-app">
     <header class="eb-toolbar">
+      <!-- Both links below are relative: they resolve correctly once this app is
+           built and copied into apps/docs/public/playground (see CLAUDE.md's
+           "playground SPA ships inside the docs deployment"), served from the
+           same origin as the docs site. In a standalone 'vite dev' run there is
+           no docs server on this origin, so they 404 locally — expected, not a bug. -->
       <div class="eb-brand">
-        <span class="eb-brand-mark">E</span>
+        <a href="/" class="eb-brand-mark" title="Back to eugine" aria-label="Back to the eugine site">E</a>
         <strong>Eugine Playground</strong>
+        <a href="/docs" class="eb-brand-docs-link">Docs</a>
       </div>
       <div class="eb-toolbar-actions">
         <div class="eb-btn-group" role="group" aria-label="History">

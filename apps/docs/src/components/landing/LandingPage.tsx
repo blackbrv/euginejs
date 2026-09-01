@@ -99,6 +99,7 @@ function Nav({ onSearch }: { onSearch: () => void }) {
     { href: "#workflow", label: "Workflow" },
     { href: "#packages", label: "Packages" },
     { href: "/docs", label: "Docs" },
+    { href: "/playground", label: "Playground" },
   ];
   return (
     <header className="fixed top-0 z-50 w-full border-b border-fd-border bg-fd-background/80 backdrop-blur-md">
@@ -114,17 +115,29 @@ function Nav({ onSearch }: { onSearch: () => void }) {
         </a>
 
         <ul className="hidden items-center gap-6 text-sm text-fd-muted-foreground md:flex">
-          {links.map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className="transition-colors hover:text-fd-foreground"
-                prefetch={link.href.startsWith("/docs") ? false : undefined}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+          {links.map((link) =>
+            // /playground is a separate static SPA served via a rewrite (see
+            // next.config.mjs), not an App Router page — next/link's soft
+            // navigation assumes a page in this app's route tree, so it gets
+            // a plain <a> (full page load) instead of everything else here.
+            link.href === "/playground" ? (
+              <li key={link.href}>
+                <a href={link.href} className="transition-colors hover:text-fd-foreground">
+                  {link.label}
+                </a>
+              </li>
+            ) : (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="transition-colors hover:text-fd-foreground"
+                  prefetch={link.href.startsWith("/docs") ? false : undefined}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ),
+          )}
         </ul>
 
         <div className="flex items-center gap-3">
