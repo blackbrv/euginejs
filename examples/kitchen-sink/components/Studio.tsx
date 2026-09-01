@@ -5,10 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import { ApiStorageAdapter } from "@/lib/apiStorageAdapter";
 import { createAutosavePlugin } from "@/lib/autosavePlugin";
 import { mountCanvas, PALETTE_ITEMS, registerPaletteDrag } from "@/lib/canvas";
+import { componentIcon } from "@/lib/componentIcons";
 import { showContextMenu } from "@/lib/contextMenu";
+import { icon } from "@/lib/icons";
+import { initKeyboardShortcuts } from "@/lib/keyboard";
 import { createPokemonDataPlugin } from "@/lib/pokemonDataPlugin";
 import { renderEventLog, renderInspector, renderLayers } from "@/lib/panels";
 import { toComponentDefinitions } from "@/lib/schema";
+import { initTheme, toggleTheme } from "@/lib/theme";
 
 export default function Studio() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -21,6 +25,15 @@ export default function Studio() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [status, setStatus] = useState("");
+  // Starts "light" to match the server-rendered markup; the layout's inline
+  // script (see app/layout.tsx) sets the real data-theme attribute before
+  // paint, and this effect below reconciles React's state to it on mount.
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [showEvents, setShowEvents] = useState(true);
+
+  useEffect(() => {
+    setTheme(initTheme());
+  }, []);
 
   useEffect(() => {
     const editor = createEditor({ components: toComponentDefinitions() });
@@ -43,6 +56,7 @@ export default function Studio() {
     const onSelect = (id: string, additive: boolean) => editor.selection.select(id, { additive });
     const onContextMenu = (id: string, clientX: number, clientY: number) => showContextMenu(editor, id, clientX, clientY, onSelect);
     const canvas = mountCanvas(editor, pokemonPlugin, canvasRef.current!, onSelect, onContextMenu);
+    const unbindKeyboard = initKeyboardShortcuts(editor, onSelect);
 
     // Same timing as the previewStyle closure below: the renderer must exist
     // before the plugin can imperatively patch pokemon nodes on the canvas.
@@ -78,16 +92,18 @@ export default function Studio() {
     // panels (which fully rebuild their contents on every refresh), this
     // palette is built exactly once per effect run.
     paletteRef.current!.innerHTML = "";
+    paletteRef.current!.className = "ks-palette-grid";
     for (const item of PALETTE_ITEMS) {
       const el = document.createElement("div");
       el.className = "ks-palette-item";
       if (item.description) el.title = item.description;
-      const icon = document.createElement("span");
-      icon.className = "ks-palette-icon";
-      icon.textContent = item.icon ?? "";
+      const iconEl = document.createElement("span");
+      iconEl.className = "ks-palette-icon";
+      iconEl.innerHTML = componentIcon(item.type);
       const label = document.createElement("span");
+      label.className = "ks-palette-label";
       label.textContent = item.label;
-      el.append(icon, label);
+      el.append(iconEl, label);
       registerPaletteDrag(el, item.type);
       el.addEventListener("click", () => onSelect(editor.insert(item.type, editor.getDocument().rootId), false));
       paletteRef.current!.appendChild(el);
@@ -99,11 +115,15 @@ export default function Studio() {
     log("editor.ready");
 
     return () => {
+      unbindKeyboard();
       canvas.destroy();
       canvas.renderer.destroy();
       editor.destroy();
     };
   }, []);
+
+  const onToggleTheme = () => setTheme(toggleTheme());
+  const onToggleEvents = () => setShowEvents((v) => !v);
 
   const batchDuplicate = () => {
     const editor = editorRef.current!;
@@ -148,22 +168,56 @@ export default function Studio() {
       <header className="ks-toolbar">
         <strong>Eugine Kitchen Sink</strong>
         <div className="ks-toolbar-actions">
-          <button onClick={() => editorRef.current?.history.undo()} disabled={!canUndo}>
-            Undo
+          <button
+            className="ks-icon-btn"
+            onClick={() => editorRef.current?.history.undo()}
+            disabled={!canUndo}
+            title="Undo"
+            aria-label="Undo"
+            dangerouslySetInnerHTML={{ __html: icon("undo") }}
+          />
+          <button
+            className="ks-icon-btn"
+            onClick={() => editorRef.current?.history.redo()}
+            disabled={!canRedo}
+            title="Redo"
+            aria-label="Redo"
+            dangerouslySetInnerHTML={{ __html: icon("redo") }}
+          />
+          <button
+            onClick={batchDuplicate}
+            dangerouslySetInnerHTML={{ __html: `${icon("copy")}<span>Duplicate ×3 (1 undo)</span>` }}
+          />
+          <button className="ks-btn-accent" onClick={publish}>
+            Publish
           </button>
-          <button onClick={() => editorRef.current?.history.redo()} disabled={!canRedo}>
-            Redo
-          </button>
-          <button onClick={batchDuplicate}>Duplicate ×3 (1 undo)</button>
-          <button onClick={publish}>Publish</button>
           <button onClick={loadFromServer}>Load from server</button>
           <a href="/preview" target="_blank" rel="noreferrer">
-            View /preview
+            Preview
           </a>
           <span className="ks-status">{status}</span>
+          <button
+            type="button"
+            className="ks-toolbar-toggle"
+            aria-pressed={showEvents}
+            title={showEvents ? "Hide logs" : "Show logs"}
+            onClick={onToggleEvents}
+            dangerouslySetInnerHTML={{ __html: `${icon("terminal")}<span>Logs</span>` }}
+          />
+          <button
+            type="button"
+            className="ks-theme-toggle"
+            data-theme-icon={theme}
+            title="Toggle theme"
+            aria-label="Toggle color theme"
+            onClick={onToggleTheme}
+          >
+            <span className="ks-theme-icon ks-theme-icon-sun" dangerouslySetInnerHTML={{ __html: icon("sun") }} />
+            <span className="ks-theme-icon ks-theme-icon-moon" dangerouslySetInnerHTML={{ __html: icon("moon") }} />
+          </button>
         </div>
       </header>
-      <div className="ks-body">
+      <div className={`ks-body${showEvents ? "" : " ks-body-no-events"}`}>
         <aside className="ks-panel ks-palette">
           <h3>Components</h3>
           <div ref={paletteRef} />
@@ -174,7 +228,11 @@ export default function Studio() {
           <div ref={canvasRef} className="ks-canvas" />
         </main>
         <aside className="ks-panel ks-inspector" ref={inspectorRef} />
-        <aside className="ks-panel ks-events">
+        {/* Kept mounted (just hidden) rather than conditionally rendered, so
+            eventLogRef stays attached — log() below runs on every editor
+            event regardless of whether this panel is visible, and would
+            throw on a null ref if the <aside> unmounted while hidden. */}
+        <aside className="ks-panel ks-events" hidden={!showEvents}>
           <h3>Event log</h3>
           <div ref={eventLogRef} />
         </aside>

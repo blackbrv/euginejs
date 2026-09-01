@@ -1,0 +1,33 @@
+/**
+ * Component-type icons shown in the palette grid and the layers panel.
+ * `root`/`section`/`container`/`heading`/`text`/`button` reuse the exact
+ * Phosphor Icons (https://phosphoricons.com, MIT licensed) path data from
+ * apps/playground/src/componentIcons.ts, so the two apps read as the same
+ * icon language. `grid`/`card`/`pokemon-carousel`/`pokemon-grid` don't exist
+ * in the playground's palette, so those four are hand-drawn from simple
+ * primitives (not Phosphor) in the same 256 viewBox / currentColor style.
+ */
+const COMPONENT_ICON_PATHS: Record<string, string> = {
+  root: '<path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/>',
+  section:
+    '<path d="M208,136H48a16,16,0,0,0-16,16v40a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,56H48V152H208v40Zm0-144H48A16,16,0,0,0,32,64v40a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V64A16,16,0,0,0,208,48Zm0,56H48V64H208v40Z"/>',
+  container:
+    '<path d="M200,80v32a8,8,0,0,1-16,0V88H160a8,8,0,0,1,0-16h32A8,8,0,0,1,200,80ZM96,168H72V144a8,8,0,0,0-16,0v32a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16ZM232,56V200a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56ZM216,200V56H40V200H216Z"/>',
+  heading:
+    '<path d="M208,56V200a8,8,0,0,1-16,0V136H64v64a8,8,0,0,1-16,0V56a8,8,0,0,1,16,0v64H192V56a8,8,0,0,1,16,0Z"/>',
+  text: '<path d="M87.24,52.59a8,8,0,0,0-14.48,0l-64,136a8,8,0,1,0,14.48,6.81L39.9,160h80.2l16.66,35.4a8,8,0,1,0,14.48-6.81ZM47.43,144,80,74.79,112.57,144ZM200,96c-12.76,0-22.73,3.47-29.63,10.32a8,8,0,0,0,11.26,11.36c3.8-3.77,10-5.68,18.37-5.68,13.23,0,24,9,24,20v3.22A42.76,42.76,0,0,0,200,128c-22.06,0-40,16.15-40,36s17.94,36,40,36a42.73,42.73,0,0,0,24-7.25,8,8,0,0,0,16-.75V132C240,112.15,222.06,96,200,96Zm0,88c-13.23,0-24-9-24-20s10.77-20,24-20,24,9,24,20S213.23,184,200,184Z"/>',
+  button:
+    '<path d="M88,24V16a8,8,0,0,1,16,0v8a8,8,0,0,1-16,0ZM16,104h8a8,8,0,0,0,0-16H16a8,8,0,0,0,0,16ZM124.42,39.16a8,8,0,0,0,10.74-3.58l8-16a8,8,0,0,0-14.31-7.16l-8,16A8,8,0,0,0,124.42,39.16Zm-96,81.69-16,8a8,8,0,0,0,7.16,14.31l16-8a8,8,0,1,0-7.16-14.31ZM219.31,184a16,16,0,0,1,0,22.63l-12.68,12.68a16,16,0,0,1-22.63,0L132.7,168,115,214.09c0,.1-.08.21-.13.32a15.83,15.83,0,0,1-14.6,9.59l-.79,0a15.83,15.83,0,0,1-14.41-11L32.8,52.92A16,16,0,0,1,52.92,32.8L213,85.07a16,16,0,0,1,1.41,29.8l-.32.13L168,132.69ZM208,195.31,156.69,144h0a16,16,0,0,1,4.93-26l.32-.14,45.95-17.64L48,48l52.2,159.86,17.65-46c0-.11.08-.22.13-.33a16,16,0,0,1,11.69-9.34,16.72,16.72,0,0,1,3-.28,16,16,0,0,1,11.3,4.69L195.31,208Z"/>',
+  grid: '<rect x="32" y="32" width="76" height="76" rx="14"/><rect x="148" y="32" width="76" height="76" rx="14"/><rect x="32" y="148" width="76" height="76" rx="14"/><rect x="148" y="148" width="76" height="76" rx="14"/>',
+  card: '<rect x="24" y="44" width="208" height="168" rx="18" fill="none" stroke="currentColor" stroke-width="14"/><rect x="50" y="76" width="156" height="18" rx="5"/><rect x="50" y="112" width="120" height="12" rx="4" opacity="0.55"/><rect x="50" y="136" width="90" height="12" rx="4" opacity="0.55"/>',
+  "pokemon-carousel":
+    '<rect x="18" y="70" width="220" height="116" rx="18" fill="none" stroke="currentColor" stroke-width="12"/><circle cx="94" cy="128" r="28"/><circle cx="168" cy="128" r="28" opacity="0.5"/><path d="M6 128 30 104 30 152Z"/><path d="M250 128 226 104 226 152Z"/>',
+  "pokemon-grid": '<circle cx="70" cy="70" r="38"/><circle cx="186" cy="70" r="38" opacity="0.55"/><circle cx="70" cy="186" r="38" opacity="0.55"/><circle cx="186" cy="186" r="38"/>',
+};
+
+const DEFAULT_ICON = COMPONENT_ICON_PATHS.container!;
+
+export function componentIcon(type: string, className = "ks-icon"): string {
+  const path = COMPONENT_ICON_PATHS[type] ?? DEFAULT_ICON;
+  return `<svg class="${className}" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">${path}</svg>`;
+}

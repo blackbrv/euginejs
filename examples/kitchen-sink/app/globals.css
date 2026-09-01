@@ -1,12 +1,107 @@
+/* ---------- Reset ---------- */
+
 * {
   box-sizing: border-box;
 }
 
+/* ---------- Theme tokens ---------- */
+
+:root {
+  --bg: #f6f6f9;
+  --surface: #ffffff;
+  --surface-alt: #f9f9fc;
+  --surface-hover: #f0f0f5;
+  --border: #e4e4ec;
+  --border-strong: #d3d3de;
+  --text: #16161d;
+  --text-muted: #6b6b78;
+  --text-faint: #9a9aa6;
+  --accent: #3366ff;
+  --accent-hover: #274fdb;
+  --accent-soft: #e8edff;
+  --accent-text: #ffffff;
+  --warning: #b8790a;
+  --warning-soft: #fdf1dc;
+  --success: #178a4c;
+  --success-soft: #e5f6ec;
+  --danger: #d1293d;
+  --danger-soft: #fceaec;
+  --shadow-sm: 0 1px 2px rgba(20, 20, 35, 0.06);
+  --shadow-md: 0 8px 24px rgba(20, 20, 35, 0.1);
+  --shadow-lg: 0 24px 64px rgba(20, 20, 35, 0.22);
+  --radius-sm: 7px;
+  --radius-md: 11px;
+  --radius-lg: 18px;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  color-scheme: light;
+
+  /*
+   * The canvas (and the /preview route it mirrors) simulates a real,
+   * published web page — which is white with dark text by default,
+   * whatever theme the *editor chrome* happens to be in. So .ks-section,
+   * .ks-card, .ks-button etc. use these fixed "site" tokens instead of the
+   * app tokens above (those flip with dark mode); defined once here at
+   * :root (not inside the dark-mode block below) so they read the same
+   * whether they're rendered inside .ks-canvas in the editor or standalone
+   * on .ks-page in the server-rendered /preview route, which never sets
+   * data-theme at all.
+   */
+  --site-bg: #ffffff;
+  --site-text: #1a1a1a;
+  --site-text-muted: #55565f;
+  --site-border: #e6e6ee;
+  --site-accent: #3366ff;
+}
+
+:root[data-theme="dark"] {
+  --bg: #101014;
+  --surface: #17171d;
+  --surface-alt: #1d1d25;
+  --surface-hover: #24242e;
+  --border: #2b2b36;
+  --border-strong: #3a3a48;
+  --text: #f1f1f5;
+  --text-muted: #a3a3b0;
+  --text-faint: #6c6c79;
+  --accent: #6d8bff;
+  --accent-hover: #86a0ff;
+  --accent-soft: rgba(109, 139, 255, 0.16);
+  --accent-text: #ffffff;
+  --warning: #e0a940;
+  --warning-soft: rgba(224, 169, 64, 0.16);
+  --success: #3ecb82;
+  --success-soft: rgba(62, 203, 130, 0.14);
+  --danger: #ff6b7a;
+  --danger-soft: rgba(255, 107, 122, 0.14);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- Base ---------- */
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  color: #1a1a1a;
-  background: #f4f5f7;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.ks-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .ks-app {
@@ -15,13 +110,17 @@ body {
   height: 100vh;
 }
 
+/* ---------- Toolbar ---------- */
+
 .ks-toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   padding: 10px 16px;
-  background: #1f2430;
-  color: white;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
 }
 
 .ks-toolbar-actions {
@@ -32,61 +131,244 @@ body {
 
 .ks-toolbar-actions button,
 .ks-toolbar-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 10px;
   cursor: pointer;
-  color: inherit;
+  color: var(--text);
   text-decoration: none;
-  background: #2c3345;
-  border: 1px solid #3a4157;
-  border-radius: 4px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  transition:
+    background-color 140ms var(--ease),
+    border-color 140ms var(--ease);
+}
+
+.ks-toolbar-actions button:hover:not(:disabled),
+.ks-toolbar-actions a:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.ks-toolbar-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Icon-only toolbar buttons (Undo/Redo) — square, no text alongside the icon. */
+.ks-toolbar-actions button.ks-icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* The one button that isn't a neutral chrome action — publishing is
+   destructive-ish (overwrites what's live) and the accent fill flags it as
+   the "this one matters" action, same convention as the playground's
+   .eb-btn-accent. */
+.ks-toolbar-actions button.ks-btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.ks-toolbar-actions button.ks-btn-accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.ks-palette-item:focus-visible,
+.ks-toolbar-actions button:focus-visible,
+.ks-toolbar-actions a:focus-visible,
+.ks-theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .ks-status {
+  display: inline-block;
   font-size: 12px;
-  color: #9aa4bf;
+  color: var(--text-muted);
   margin-left: 8px;
 }
+
+/* ---------- Logs toggle ---------- */
+
+/*
+ * Same box as the other toolbar buttons (padding/border/radius come from
+ * the `.ks-toolbar-actions button` rule above), plus an icon+label layout
+ * and a pressed state so it's clear the Event log panel is currently shown.
+ */
+.ks-toolbar-toggle[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* ---------- Theme toggle ---------- */
+
+.ks-theme-toggle {
+  position: relative;
+  overflow: hidden;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.ks-theme-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition:
+    transform 320ms var(--ease),
+    opacity 220ms var(--ease);
+}
+
+.ks-theme-icon-sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.ks-theme-icon-moon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.ks-theme-toggle[data-theme-icon="dark"] .ks-theme-icon-sun {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.ks-theme-toggle[data-theme-icon="dark"] .ks-theme-icon-moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+/* ---------- Body layout ---------- */
 
 .ks-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 210px 1fr 240px 260px;
+  grid-template-columns: 230px 1fr 260px 260px;
   min-height: 0;
 }
 
+/* Applied when the Logs toggle hides .ks-events — the panel itself is just
+   `hidden` (see Studio.tsx), but grid-template-columns is a fixed track
+   list, so the 4th column has to be dropped here too or it'd stay reserved
+   as empty space. */
+.ks-body-no-events {
+  grid-template-columns: 230px 1fr 260px;
+}
+
 .ks-panel {
-  background: white;
-  border-right: 1px solid #ddd;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   padding: 12px;
   overflow-y: auto;
   font-size: 13px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
 }
 
 .ks-inspector {
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--border);
 }
 
 .ks-events {
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--border);
   border-right: none;
 }
 
 .ks-panel h3 {
   font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  color: #888;
-  margin: 12px 0 6px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin: 12px 0 8px;
+}
+
+.ks-panel h3:first-child {
+  margin-top: 2px;
+}
+
+/* ---------- Palette ---------- */
+
+.ks-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
 .ks-palette-item {
-  padding: 7px 9px;
-  margin-bottom: 5px;
-  background: #eef0f4;
-  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 6px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   cursor: grab;
-  font-size: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  transition:
+    background-color 140ms var(--ease),
+    border-color 140ms var(--ease),
+    color 140ms var(--ease),
+    transform 100ms var(--ease);
 }
+
+.ks-palette-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  transition: color 140ms var(--ease);
+}
+
+.ks-palette-icon .ks-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.ks-palette-label {
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.ks-palette-item:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.ks-palette-item:hover .ks-palette-icon {
+  color: var(--accent);
+}
+
+.ks-palette-item:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+/* ---------- Layers ---------- */
 
 .ks-layers {
   list-style: none;
@@ -98,18 +380,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 3px 4px;
+  padding: 4px 5px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   gap: 6px;
+  transition: background-color 120ms var(--ease);
 }
 
 .ks-layer-row:hover {
-  background: #f0f0f0;
+  background: var(--surface-hover);
 }
 
 .ks-layer-selected {
-  background: #dce8ff;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ks-layer-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ks-layer-actions {
@@ -121,40 +411,55 @@ body {
 .ks-layer-actions button {
   border: none;
   background: transparent;
+  color: var(--text-faint);
   cursor: pointer;
   font-size: 10px;
-  padding: 1px 3px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 120ms var(--ease);
 }
+
+.ks-layer-actions button:hover {
+  color: var(--text);
+}
+
+/* ---------- Canvas ---------- */
 
 .ks-canvas-wrapper {
   overflow: auto;
   padding: 24px;
+  background: var(--bg);
 }
 
 .ks-canvas {
   position: relative;
-  background: white;
+  background: var(--site-bg);
   min-height: 100%;
-  border: 1px dashed #ccc;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
   padding: 16px;
+  color: var(--site-text);
 }
 
 .ks-node:hover {
-  outline: 1px dashed #7aa7ff;
+  outline: 1.5px dashed var(--accent);
   outline-offset: 2px;
 }
 
 .ks-locked {
-  outline: 1px solid #e0a100 !important;
+  outline: 1.5px solid var(--warning) !important;
+  outline-offset: 2px;
 }
 
 .ks-drop-target {
-  outline: 2px solid #3366ff !important;
+  outline: 2px solid var(--accent) !important;
+  background: var(--accent-soft);
 }
 
 /* Double-click-to-edit: entered via contentEditable in canvas.ts's makeEditableText(). */
 .ks-editing {
-  outline: 2px dashed #3366ff !important;
+  outline: 2px dashed var(--accent) !important;
   cursor: text;
   user-select: text;
 }
@@ -167,7 +472,7 @@ body {
  */
 .ks-drop-indicator {
   position: absolute;
-  background: #3366ff;
+  background: var(--accent);
   border-radius: 2px;
   pointer-events: none;
   z-index: 20;
@@ -183,11 +488,14 @@ body {
   margin-left: -1.5px;
 }
 
+/* ---------- Site content (shared by the editor canvas and /preview) ---------- */
+
 .ks-section,
 .ks-container,
 .ks-grid,
 .ks-card {
-  border: 1px solid #eee;
+  border: 1px solid var(--site-border);
+  border-radius: 6px;
   padding: 12px;
   margin-bottom: 10px;
   min-height: 40px;
@@ -200,32 +508,35 @@ body {
 }
 
 .ks-card {
-  background: #fafbfc;
+  background: var(--site-bg);
 }
 
 .ks-card h3 {
   margin: 0 0 6px;
   font-size: 13px;
-  color: #333;
+  color: var(--site-text);
   text-transform: none;
 }
 
 .ks-placeholder {
-  color: #999;
-  font-size: 11px;
-  border: 1px dashed #ccc;
-  padding: 8px;
+  color: var(--text-faint);
+  font-size: 12px;
+  border: 1px dashed var(--site-border);
+  border-radius: 8px;
+  padding: 14px;
   text-align: center;
 }
 
 .ks-button {
   display: inline-block;
   padding: 6px 14px;
-  background: #3366ff;
-  color: white;
+  background: var(--site-accent);
+  color: #fff;
   border-radius: 4px;
   text-decoration: none;
 }
+
+/* ---------- Inspector ---------- */
 
 .ks-field {
   display: block;
@@ -235,39 +546,114 @@ body {
 .ks-field span {
   display: block;
   margin-bottom: 4px;
-  color: #666;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
 .ks-field input {
   width: 100%;
-  padding: 4px 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.ks-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .ks-empty {
-  color: #888;
+  color: var(--text-faint);
   font-size: 12px;
+}
+
+.ks-inspector button {
+  margin: 4px 4px 4px 0;
+  padding: 5px 9px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 140ms var(--ease);
+}
+
+.ks-inspector button:hover {
+  background: var(--surface-hover);
 }
 
 /* ---------- Design panel ---------- */
 
 .ks-design-group {
-  margin-bottom: 4px;
+  margin: 0 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  overflow: hidden;
 }
 
-.ks-design-group h4 {
-  margin: 14px 0 6px;
+.ks-design-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    color 140ms var(--ease),
+    background-color 140ms var(--ease);
+}
+
+.ks-design-group-header:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.ks-design-group-header > .ks-icon:first-child {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.ks-design-group-title {
+  flex: 1;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #888;
+}
+
+.ks-design-group-chevron {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: transform 160ms var(--ease);
+}
+
+.ks-design-group-header:not(.ks-design-group-collapsed) .ks-design-group-chevron {
+  transform: rotate(90deg);
+}
+
+.ks-design-group-body {
+  padding: 4px 10px 10px;
 }
 
 .ks-select {
   width: 100%;
-  padding: 4px 6px;
+  padding: 6px 8px;
   font-size: 12px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -283,7 +669,7 @@ body {
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: none;
   cursor: pointer;
@@ -292,24 +678,45 @@ body {
 .ks-color-text {
   flex: 1;
   min-width: 0;
-  padding: 4px 6px;
+  padding: 6px 8px;
   font-size: 12px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .ks-length-amount {
   flex: 1;
   min-width: 0;
   width: auto;
-  padding: 4px 6px;
+  padding: 6px 8px;
   font-size: 12px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .ks-length-unit {
   flex-shrink: 0;
   width: 60px;
-  padding: 4px 2px;
+  padding: 6px 2px;
   font-size: 12px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+}
+
+.ks-color-text:focus,
+.ks-length-amount:focus,
+.ks-length-unit:focus,
+.ks-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .ks-custom-style-row {
@@ -323,9 +730,13 @@ body {
 .ks-custom-style-value {
   min-width: 0;
   flex: 1;
-  padding: 4px 6px;
+  padding: 6px 8px;
   font-size: 11px;
   font-family: ui-monospace, monospace;
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .ks-custom-style-remove {
@@ -335,15 +746,20 @@ body {
   padding: 0;
   border: none;
   background: transparent;
+  color: var(--text-faint);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease);
 }
 
-.ks-inspector button {
-  margin: 4px 4px 4px 0;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
+.ks-custom-style-remove:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
+
+/* ---------- Event log ---------- */
 
 .ks-event-log {
   list-style: none;
@@ -351,25 +767,28 @@ body {
   padding: 0;
   font-family: ui-monospace, monospace;
   font-size: 10px;
-  color: #444;
+  color: var(--text-muted);
 }
 
 .ks-event-log li {
   padding: 2px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border);
 }
 
-/* Server-rendered /preview page */
+/* ---------- Server-rendered /preview page ---------- */
+
 .ks-page {
   max-width: 720px;
   margin: 40px auto;
   padding: 0 20px;
   font-family: system-ui, sans-serif;
+  background: var(--site-bg);
+  color: var(--site-text);
 }
 
-.ks-section,
-.ks-container {
-  border-radius: 6px;
+/* Server-rendered pokemon blocks reuse the same card styles */
+.ks-page .ks-pokemon-track {
+  max-width: 100%;
 }
 
 /* ---------- Context menu ---------- */
@@ -382,10 +801,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(20, 20, 35, 0.16);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .ks-context-menu-item {
@@ -394,18 +813,146 @@ body {
   padding: 6px 9px;
   text-align: left;
   font-size: 13px;
-  color: #1a1a1a;
+  color: var(--text);
   background: none;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
 }
 
 .ks-context-menu-item:hover:not(:disabled) {
-  background: #f0f0f4;
+  background: var(--surface-hover);
 }
 
 .ks-context-menu-item:disabled {
-  color: #aaa;
+  color: var(--text-faint);
   cursor: default;
+}
+
+/* ---------- Pokémon data components (site content) ---------- */
+
+.ks-pokemon-carousel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.ks-pokemon-track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 6px;
+  flex: 1;
+}
+
+.ks-pokemon-carousel-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--site-border);
+  background: var(--site-bg);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--site-text);
+}
+
+.ks-pokemon-card {
+  margin: 0;
+  min-width: 110px;
+  max-width: 110px;
+  text-align: center;
+  background: var(--site-bg);
+  border: 1px solid var(--site-border);
+  border-radius: 10px;
+  padding: 8px 6px 6px;
+  scroll-snap-align: start;
+}
+
+.ks-pokemon-card img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+.ks-pokemon-card figcaption {
+  font-size: 11px;
+  color: var(--site-text-muted);
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ks-pokemon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.ks-pokemon-grid-inner {
+  display: contents;
+}
+
+.ks-pokemon-grid-footer {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.ks-pokemon-loadmore-btn {
+  padding: 6px 14px;
+  background: var(--site-accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ks-pokemon-loadmore-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ks-pokemon-skeleton {
+  min-width: 110px;
+  height: 96px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef0f4 25%, #e2e5ec 37%, #eef0f4 63%);
+  background-size: 400% 100%;
+  animation: ks-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes ks-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.ks-pokemon-error {
+  grid-column: 1 / -1;
+  color: #b3261e;
+  font-size: 12px;
+  background: #fdecea;
+  border: 1px solid #f5c6c2;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 900px) {
+  .ks-body {
+    grid-template-columns: 200px 1fr 240px;
+  }
+  .ks-events {
+    display: none;
+  }
 }
