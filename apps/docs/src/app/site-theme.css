@@ -53,6 +53,46 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Docs sidebar width                                                  */
+/*                                                                     */
+/* Fumadocs' DocsLayout hardcodes --fd-sidebar-width: 268px (not        */
+/* something DocsLayoutProps exposes as a prop) in two independent      */
+/* places, both of which need overriding or the grid track and the     */
+/* visible <aside> end up mismatched:                                  */
+/*  - #nd-docs-layout (the grid container) resolves --fd-sidebar-width  */
+/*    for the grid-template-columns calc that reserves the sidebar's    */
+/*    track width.                                                     */
+/*  - [data-sidebar-placeholder] (a descendant) redeclares its own      */
+/*    --fd-sidebar-width locally, which is what the actual <aside>      */
+/*    reads for its own width — a descendant's own declaration always   */
+/*    wins over an inherited one, so overriding only the container      */
+/*    wouldn't reach it.                                                */
+/*                                                                     */
+/* The bigger contributor to "too much space on the left" turned out    */
+/* not to be this at all: #nd-docs-layout's grid is                     */
+/*   minmax(min-content,1fr) sidebar main toc minmax(min-content,1fr)   */
+/* — two flexible "centering" gutters bracketing a fixed-width content   */
+/* region capped at var(--fd-layout-width, 97rem). On any viewport      */
+/* wider than that cap, the leftover splits evenly into dead space on    */
+/* BOTH sides (confirmed via computed styles: 140px each at a 1832px    */
+/* container). --fd-layout-width isn't set anywhere in this app, so a   */
+/* generous cap here effectively removes those gutters on any realistic */
+/* screen while still capping absurd line lengths on exotic 5K+ displays.*/
+/* !important on all of these guarantees they win regardless of whether  */
+/* Fumadocs' compiled utility classes happen to have equal specificity  */
+/* and/or a later position in the built stylesheet.                     */
+/* ------------------------------------------------------------------ */
+
+#nd-docs-layout,
+[data-sidebar-placeholder] {
+  --fd-sidebar-width: 230px !important;
+}
+
+#nd-docs-layout {
+  --fd-layout-width: 3000px !important;
+}
+
+/* ------------------------------------------------------------------ */
 /* Fixed layered background shared by docs pages (landing paints its    */
 /* own opaque .nexus-bg on top, so this never double-renders there).    */
 /* ------------------------------------------------------------------ */
