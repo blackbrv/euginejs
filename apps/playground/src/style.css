@@ -732,16 +732,63 @@ button {
 /* ---------- Design panel ---------- */
 
 .eb-design-group {
-  margin-bottom: 4px;
+  margin: 0 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  overflow: hidden;
 }
 
-.eb-design-group h4 {
-  margin: 14px 0 8px;
-  font-size: 10px;
+.eb-design-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.eb-design-group-header:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.eb-design-group-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.eb-design-group-header > .eb-icon:first-child {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.eb-design-group-title {
+  flex: 1;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.eb-design-group-chevron {
+  flex-shrink: 0;
   color: var(--text-faint);
+  transition: transform 160ms var(--ease);
+}
+
+.eb-design-group-header:not(.eb-design-group-collapsed) .eb-design-group-chevron {
+  transform: rotate(90deg);
+}
+
+.eb-design-group-body {
+  padding: 4px 10px 12px;
 }
 
 .eb-color-input-group {

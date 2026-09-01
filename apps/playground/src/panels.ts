@@ -1,7 +1,27 @@
 import { getAncestors, getNode, type Editor, type EugineNode } from "eugine";
 import { CARET_ICON, componentIcon } from "./componentIcons.js";
+import { icon } from "./icons.js";
 import { schemaFor } from "./schema.js";
 import { DEFAULT_LENGTH_UNITS, DESIGN_FIELDS, DESIGN_GROUPS, isCustomStyleProperty, parseLength, type DesignFieldDef } from "./styleFields.js";
+
+/** Icon shown next to each design-panel group heading — purely decorative, keyed by DESIGN_GROUPS' names. */
+const DESIGN_GROUP_ICONS: Record<(typeof DESIGN_GROUPS)[number], Parameters<typeof icon>[0]> = {
+  Layout: "layout",
+  Background: "droplet",
+  Typography: "type",
+  Border: "square",
+  Spacing: "maximize",
+  Effects: "zap",
+  Animation: "play",
+};
+
+/**
+ * Which design-panel groups are collapsed, by group name. Module-level (a
+ * view preference, not document state) — mirrors `collapsedIds` above for
+ * the layers tree. Starts empty (everything expanded) except "Custom CSS",
+ * which is the group least often touched.
+ */
+const collapsedDesignGroups = new Set<string>(["Custom CSS"]);
 
 /** Applies a style directly to the live canvas element, bypassing the editor/history entirely. */
 export type PreviewStyle = (id: string, property: string, value: string) => void;
@@ -369,6 +389,45 @@ function fieldDependencyMet(node: EugineNode, field: DesignFieldDef): boolean {
   return Array.isArray(expected) ? expected.includes(actual) : actual === expected;
 }
 
+/**
+ * A collapsible design-panel group: an icon + label header button (toggles
+ * `collapsedDesignGroups`) and a body the caller fills with fields. Toggling
+ * mutates the DOM directly rather than triggering a full renderInspector()
+ * re-render, so it doesn't blow away in-progress input focus elsewhere in
+ * the panel.
+ */
+function createDesignGroup(container: HTMLElement, name: string, iconName: Parameters<typeof icon>[0]): HTMLElement {
+  const groupEl = document.createElement("div");
+  groupEl.className = "eb-design-group";
+
+  const collapsed = collapsedDesignGroups.has(name);
+
+  const header = document.createElement("button");
+  header.type = "button";
+  header.className = "eb-design-group-header";
+  if (collapsed) header.classList.add("eb-design-group-collapsed");
+  header.setAttribute("aria-expanded", String(!collapsed));
+  header.innerHTML = `${icon(iconName)}<span class="eb-design-group-title">${name}</span>${icon("chevron", "eb-icon eb-design-group-chevron")}`;
+  groupEl.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "eb-design-group-body";
+  body.hidden = collapsed;
+  groupEl.appendChild(body);
+
+  header.addEventListener("click", () => {
+    const nowCollapsed = !body.hidden;
+    body.hidden = nowCollapsed;
+    header.setAttribute("aria-expanded", String(!nowCollapsed));
+    header.classList.toggle("eb-design-group-collapsed", nowCollapsed);
+    if (nowCollapsed) collapsedDesignGroups.add(name);
+    else collapsedDesignGroups.delete(name);
+  });
+
+  container.appendChild(groupEl);
+  return body;
+}
+
 function renderDesignSection(
   editor: Editor,
   node: EugineNode,
@@ -385,34 +444,21 @@ function renderDesignSection(
     if (group === "Layout" && !canHaveChildren) continue;
     const fields = DESIGN_FIELDS.filter((f) => f.group === group && fieldDependencyMet(node, f));
     if (fields.length === 0) continue;
-    const groupEl = document.createElement("div");
-    groupEl.className = "eb-design-group";
-
-    const groupHeading = document.createElement("h4");
-    groupHeading.textContent = group;
-    groupEl.appendChild(groupHeading);
-
-    for (const field of fields) renderDesignField(groupEl, editor, node, field, previewStyle);
-    container.appendChild(groupEl);
+    const body = createDesignGroup(container, group, DESIGN_GROUP_ICONS[group]);
+    for (const field of fields) renderDesignField(body, editor, node, field, previewStyle);
   }
 
-  const customGroup = document.createElement("div");
-  customGroup.className = "eb-design-group";
-  const customHeading = document.createElement("h4");
-  customHeading.textContent = "Custom CSS";
-  customGroup.appendChild(customHeading);
+  const customBody = createDesignGroup(container, "Custom CSS", "code");
 
   const customHint = document.createElement("p");
   customHint.className = "eb-inspector-hint";
   customHint.textContent = "Any CSS property Eugine doesn't have a dedicated control for.";
-  customGroup.appendChild(customHint);
+  customBody.appendChild(customHint);
 
   const customEntries = Object.entries(node.styles ?? {}).filter(([property, value]) => isCustomStyleProperty(property) && value !== undefined);
   for (const [property, value] of customEntries) {
-    renderCustomStyleRow(customGroup, editor, node, property, String(value ?? ""));
+    renderCustomStyleRow(customBody, editor, node, property, String(value ?? ""));
   }
   // Always-present blank row so there's a permanent place to add the next property.
-  renderCustomStyleRow(customGroup, editor, node, "", "");
-
-  container.appendChild(customGroup);
+  renderCustomStyleRow(customBody, editor, node, "", "");
 }

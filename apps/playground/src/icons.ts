@@ -16,6 +16,16 @@ const ICONS: Record<string, string> = {
   package:
     '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line>',
   check: '<polyline points="20 6 9 17 4 12"></polyline>',
+  // Design-panel group headings (renderDesignSection in panels.ts) — same
+  // 24x24 stroke style as the rest of this set, not Phosphor.
+  layout: '<rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="9" x2="9" y2="21"></line>',
+  droplet: '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>',
+  type: '<polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line>',
+  square: '<rect x="3" y="3" width="18" height="18" rx="2"></rect>',
+  maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>',
+  zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
+  play: '<polygon points="5 3 19 12 5 21 5 3"></polygon>',
+  chevron: '<polyline points="9 18 15 12 9 6"></polyline>',
 };
 
 export function icon(name: keyof typeof ICONS, className = "eb-icon"): string {

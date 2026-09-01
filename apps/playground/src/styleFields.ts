@@ -14,7 +14,7 @@ export interface DesignFieldDef {
   /** A real CSS property name (kebab-case), applied via CSSStyleDeclaration.setProperty(). */
   property: string;
   label: string;
-  group: "Layout" | "Background" | "Typography" | "Border" | "Spacing";
+  group: "Layout" | "Background" | "Typography" | "Border" | "Spacing" | "Effects" | "Animation";
   control: DesignControl;
   options?: string[];
   placeholder?: string;
@@ -120,9 +120,16 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
   // longhand property name — those aren't shadowed by this field.
   { property: "padding", label: "Padding", group: "Spacing", control: "length" },
   { property: "margin", label: "Margin", group: "Spacing", control: "length" },
+  { property: "opacity", label: "Opacity", group: "Effects", control: "text", placeholder: "1" },
+  { property: "box-shadow", label: "Shadow", group: "Effects", control: "text", placeholder: "0 4px 12px rgba(0,0,0,.15)" },
+  { property: "filter", label: "Filter", group: "Effects", control: "text", placeholder: "blur(2px)" },
+  { property: "cursor", label: "Cursor", group: "Effects", control: "select", options: ["default", "pointer", "grab", "not-allowed", "text"] },
+  { property: "transform", label: "Transform", group: "Animation", control: "text", placeholder: "scale(1.05)" },
+  { property: "transition", label: "Transition", group: "Animation", control: "text", placeholder: "all 0.2s ease" },
+  { property: "animation", label: "Animation", group: "Animation", control: "text", placeholder: "fade-in 0.4s ease-in-out" },
 ];
 
-export const DESIGN_GROUPS = ["Layout", "Background", "Typography", "Border", "Spacing"] as const;
+export const DESIGN_GROUPS = ["Layout", "Background", "Typography", "Border", "Spacing", "Effects", "Animation"] as const;
 
 const DESIGN_PROPERTY_SET = new Set(DESIGN_FIELDS.map((f) => f.property));
 
