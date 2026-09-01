@@ -5,6 +5,7 @@ import type { MDXComponents } from "mdx/types";
 import { CodeFromFile } from "@/components/CodeFromFile";
 import { EugineDemo } from "@/components/EugineDemo";
 import { PackageTable } from "@/components/PackageTable";
+import { ArchitectureDiagram } from "@/components/ArchitectureDiagram";
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -16,6 +17,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     CodeFromFile,
     EugineDemo,
     PackageTable,
+    ArchitectureDiagram,
     ...components,
   };
 }

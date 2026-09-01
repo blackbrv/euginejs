@@ -3,6 +3,12 @@ title: Document Model
 description: A flat, immutable node map — and why it is flat.
 ---
 
+import { documentEditFlowDiagram } from "@/diagrams/documentEditFlow";
+
+The diagram below traces one call to `editor.insert()` end to end: validation, command construction, history, the store write, and finally the renderer.
+
+<ArchitectureDiagram data={documentEditFlowDiagram} title="The document-edit pipeline" />
+
 ```ts
 interface EugineDocument {
   schemaVersion: number;

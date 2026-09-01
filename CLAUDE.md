@@ -89,6 +89,17 @@ Three pieces are load-bearing and easy to break:
   for production builds (dev stays at root), so if you change the playground's build output shape
   or base there, verify `/playground` still loads with working asset URLs on the deployed site.
 
+**Interactive diagrams.** Multi-step / multi-actor flows are diagrammed, not just described in
+prose. Every diagram is a hand-authored, typed data file in `apps/docs/src/diagrams/*.ts`
+(one `DiagramDefinition` per file, with node ids typed as a literal union so a mistyped edge
+`from`/`to` fails `tsc --noEmit`), rendered via the reusable `<ArchitectureDiagram data={...} />`
+component (`apps/docs/src/components/ArchitectureDiagram.tsx`, which carries React Flow's
+`@xyflow/react` as an `apps/docs` dependency and reads light/dark via `useTheme()` from
+`fumadocs-ui/provider/base`). Add one when a page describes a genuinely multi-step or multi-actor
+flow — not for every page (single linear step lists don't qualify). Routed diagrams
+(history, collaboration, plugin lifecycle) define `routes` for distinct named paths through the
+graph.
+
 A JSDoc comment in library source that contains an unfenced `{` becomes an MDX parse error once
 TypeDoc emits it — fence code examples in doc comments (see `SELECTED_ATTRIBUTE` in
 `packages/renderer/src/dom.ts`).

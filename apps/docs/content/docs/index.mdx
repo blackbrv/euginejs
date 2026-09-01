@@ -3,6 +3,8 @@ title: Introduction
 description: An extensible engine for building drag-and-drop visual editors and page builders.
 ---
 
+import { packageGraphDiagram } from "@/diagrams/packageGraph";
+
 Eugine is not a website builder. It is the infrastructure any visual drag-and-drop editor is
 built *on top of* — a document model, a component registry, a command/history system, and a
 rendering architecture. Developers register their own components and build their own editor UI.
@@ -30,13 +32,9 @@ runtime, no `window`, and deterministic output for identical input.
 
 ## Architecture
 
-```text
-@eugine/core  (no deps; no DOM, no React)
-   ├─ @eugine/renderer          browser DOM renderer
-   ├─ @eugine/renderer-server   SSR-safe HTML renderer
-   ├─ @eugine/versioning        persistent document versions (a plugin, not a core feature)
-   └─ eugine                    re-exports core; eugine/renderer, eugine/server, eugine/versioning subpaths
-```
+The package graph below shows how the library is split: `@eugine/core` is dependency-free, every other package builds on it, and `eugine` is the single package most consumers install.
+
+<ArchitectureDiagram data={packageGraphDiagram} title="Package graph" />
 
 <PackageTable />
 

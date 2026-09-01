@@ -3,6 +3,8 @@ title: History
 description: Transactions, atomic replay, and undo that is safe with a second author.
 ---
 
+import { historyTransactionsDiagram } from "@/diagrams/historyTransactions";
+
 `History` is a transaction-aware undo/redo stack over commands — in-session and ephemeral, cleared
 on `editor.load()`. For durable checkpoints that survive a refresh or a deploy ("Draft v3",
 "Published v2", with rollback), see [Versioning](/docs/guides/versioning) instead — a separate
@@ -35,6 +37,10 @@ The failure this prevents is subtle and severe: pop-then-replay leaves the docum
 *and* drops the transaction from both stacks, putting the user's edit permanently out of reach of
 undo and redo alike. A failed replay raises `EUGINE_HISTORY_ERROR` with the original error as its
 `cause`.
+
+The diagram below shows the execute path and the two undo outcomes. Select a route to trace it.
+
+<ArchitectureDiagram data={historyTransactionsDiagram} title="Transactions, execute, and atomic undo" />
 
 ## Undo is scoped to the client
 

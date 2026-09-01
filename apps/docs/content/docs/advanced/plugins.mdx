@@ -3,6 +3,8 @@ title: Plugins
 description: Packaging behaviour without adding it to core.
 ---
 
+import { pluginLifecycleDiagram } from "@/diagrams/pluginLifecycle";
+
 ```ts
 interface EuginePlugin<TEditor = unknown> {
   name: string;
@@ -15,6 +17,11 @@ interface EuginePlugin<TEditor = unknown> {
 
 The lifecycle runs `install` → `initialize` → `ready` → `destroy`. A plugin registered after the
 editor is already ready has its `ready` called immediately.
+
+The diagram below is a state machine over that lifecycle. Pick a route to trace a normal install,
+an install that throws, or a plugin registered after the editor was already ready.
+
+<ArchitectureDiagram data={pluginLifecycleDiagram} title="Plugin lifecycle" />
 
 ```ts
 const editor = createEditor({ plugins: [autosavePlugin(save)] });

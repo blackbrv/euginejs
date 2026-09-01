@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.5",
     "eugine": "0.1.0",
     "fumadocs-core": "^16.15.4",
     "fumadocs-mdx": "^15.4.0",
@@ -21,13 +22,13 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
     "@types/mdx": "^2.0.13",
     "@types/node": "^26.0.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
-    "tailwindcss": "^4.1.0",
-    "@tailwindcss/postcss": "^4.1.0",
     "postcss": "^8.4.47",
+    "tailwindcss": "^4.1.0",
     "typedoc": "^0.28.20",
     "typedoc-plugin-frontmatter": "^1.3.0",
     "typedoc-plugin-markdown": "^4.13.0",

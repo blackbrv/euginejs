@@ -3,10 +3,17 @@ title: Collaboration
 description: Multiple people editing one document, without anyone losing work.
 ---
 
+import { collaborationSyncDiagram } from "@/diagrams/collaborationSync";
+
 Eugine ships no transport, but it gives you the seams to build one — and, more importantly, it is
 safe to have more than one author. Two things make that work.
 
 ## Operations are the wire format
+
+The diagram below traces one edit from Editor A through the transport to Editor B. The node
+descriptions point at the `client`, `outbound`, and `inbound` code regions on this page.
+
+<ArchitectureDiagram data={collaborationSyncDiagram} title="Two-actor collaboration sync" />
 
 Every committed transaction serializes to plain JSON data. **Never ship the whole document**; that
 is last-write-wins by another name.

@@ -3,6 +3,8 @@ title: Events
 description: What the editor emits, and the ordering you can rely on.
 ---
 
+import { eventOrderingDiagram } from "@/diagrams/eventOrdering";
+
 ```ts
 const off = editor.events.on("node.create", ({ node }) => { /* ... */ });
 off(); // unsubscribe
@@ -29,6 +31,10 @@ off(); // unsubscribe
 `DocumentStore.set()` emits `document.change` synchronously *inside* `history.execute()`, before
 the editor emits its own higher-level event. The store event always precedes the editor-level
 event for the same operation.
+
+The numbered sequence below makes that guarantee explicit.
+
+<ArchitectureDiagram data={eventOrderingDiagram} title="Event ordering guarantee" />
 
 Selection is pruned before `document.change` fires, so a listener that reads the current selection
 never observes an id the document no longer contains.

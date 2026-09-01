@@ -3,8 +3,15 @@ title: Rendering
 description: Two renderers, two registries, one document.
 ---
 
+import { rendererSplitDiagram } from "@/diagrams/rendererSplit";
+
 The same `EugineDocument` feeds both renderers, but they take **incompatible** component-renderer
 shapes — so you build a separate `ComponentRegistry<T>` per context.
+
+The diagram below emphasizes that these are two separate registries fed from the same document,
+not one registry serving two outputs.
+
+<ArchitectureDiagram data={rendererSplitDiagram} title="Two renderers, one document" />
 
 | | Returns | Package |
 | --- | --- | --- |
