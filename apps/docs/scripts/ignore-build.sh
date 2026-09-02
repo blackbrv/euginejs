@@ -5,4 +5,4 @@
 if [ -z "$VERCEL_GIT_PREVIOUS_SHA" ]; then
   exit 1
 fi
-git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- . ../../packages ../playground
+git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- . ../../packages ../playground ../../package.json ../../package-lock.json
