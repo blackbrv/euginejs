@@ -7,14 +7,16 @@ editor is built *on top of* — a document model, component registry, command/hi
 rendering architecture — so you don't have to implement drag-and-drop, undo/redo, serialization
 and rendering from scratch.
 
+📚 **[Documentation](https://euginejs-docs-js.vercel.app/)** — guides, examples, and full API reference.
+
 > Eugine gives developers the engine. Developers build the editor.
 
-This repository implements the MVP scope defined in [`PRD.md`](./PRD.md) §116: the document
-engine, component registry, commands, history, events, serialization, selection state, and both a
-browser DOM renderer and a server-safe HTML renderer. Real-time collaboration, a React
-renderer/adapter, storage-backed autosave wiring beyond the primitive, templates, and AI
-integration are explicitly out of scope for this release (PRD §117–120) and are left for later
-phases.
+Eugine ships the complete editing core: the document engine, a component registry, a command
+system, transaction-aware history with undo/redo, events, serialization, selection state, and two
+renderers — a browser DOM renderer and a server-safe HTML renderer.
+
+**Not included yet.** Real-time collaboration, a React renderer/adapter, storage-backed autosave
+beyond the adapter primitive, templates, and AI integration are on the roadmap.
 
 ## Packages
 
@@ -47,6 +49,11 @@ output for identical input.
 Component types are resolved strictly against a `ComponentRegistry` you build — a renderer never
 dynamically imports or executes anything named inside a document. That registry is the security
 boundary described in PRD §61–63: untrusted document JSON is data, never code.
+
+## Documentation
+
+Full guides and the complete API reference live at
+**[euginejs-docs-js.vercel.app](https://euginejs-docs-js.vercel.app/)**.
 
 ## Getting started
 
