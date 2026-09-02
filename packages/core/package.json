@@ -1,6 +1,6 @@
 {
   "name": "@euginejs/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Eugine core engine: document model, component registry, commands, history and events for building visual editors.",
   "type": "module",
   "license": "MIT",
