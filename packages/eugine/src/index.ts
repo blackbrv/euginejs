@@ -4,4 +4,4 @@
  * Server-safe rendering: `import { renderToString } from "eugine/server"`.
  * Persistent document versions: `import { Versioning } from "eugine/versioning"`.
  */
-export * from "@eugine/core";
+export * from "@euginejs/core";

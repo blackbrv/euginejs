@@ -10,19 +10,19 @@ export const PACKAGES = [
     desc: "Re-exports core, plus eugine/renderer, eugine/server, eugine/versioning. Most apps install this.",
   },
   {
-    name: "@eugine/core",
+    name: "@euginejs/core",
     desc: "Document model, registry, commands, history, selection, serialization, plugins.",
   },
   {
-    name: "@eugine/renderer",
+    name: "@euginejs/renderer",
     desc: "Browser DOM renderer with per-node incremental updates.",
   },
   {
-    name: "@eugine/renderer-server",
+    name: "@euginejs/renderer-server",
     desc: "Deterministic HTML string renderer, zero browser API dependencies.",
   },
   {
-    name: "@eugine/versioning",
+    name: "@euginejs/versioning",
     desc: "Optional plugin for persistent, durable document versions and rollback.",
   },
 ] as const;

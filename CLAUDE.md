@@ -43,11 +43,11 @@ Before publishing/packaging changes, validate contents with `npm pack --dry-run 
 (see `.github/workflows/ci.yml` for the exact gate order: build → typecheck → test → pack).
 
 **Build must run before typecheck, always — in CI and locally.** Every package resolves its
-siblings (e.g. `@eugine/renderer` importing `@eugine/core`) through the consumed package's
+siblings (e.g. `@euginejs/renderer` importing `@euginejs/core`) through the consumed package's
 `"types"` field, which points at `./dist/index.d.ts` — a build output, not the source. On a fresh
 clone (or after `npm run clean`), running `tsc --noEmit` before a build fails with `Cannot find
-module '@eugine/core'`. The root `build` script accounts for this internally too: `@eugine/eugine`
-re-exports `@eugine/renderer`/`@eugine/renderer-server`, so building it before those two exist
+module '@euginejs/core'`. The root `build` script accounts for this internally too: `@euginejs/eugine`
+re-exports `@euginejs/renderer`/`@euginejs/renderer-server`, so building it before those two exist
 fails the same way — npm workspaces otherwise iterate packages alphabetically, not in dependency
 order, so `build` explicitly lists packages via repeated `-w` flags in dependency order (core →
 renderer/renderer-server → eugine → apps/examples) instead of a plain `--workspaces` sweep. If you
@@ -56,12 +56,12 @@ add a new workspace package, add it to that explicit list in the correct positio
 on another workspace package.
 
 **The effective minimum Node version is set by the strictest workspace member, not the root
-`engines` field alone.** The `@eugine/*` library packages support Node >=18.18, but `examples/*`
+`engines` field alone.** The `@euginejs/*` library packages support Node >=18.18, but `examples/*`
 and `apps/docs` are Next.js 16 apps that require Node >=20.9 and fail `next build` outright on
 older Node — since
 `npm run build`/`npm run typecheck` run across every workspace, the CI matrix (and anyone running
 these scripts locally) needs Node >=20.9 for the whole repo to build clean, even though individual
-`@eugine/*` packages remain installable on Node 18 elsewhere. If you add a workspace with a
+`@euginejs/*` packages remain installable on Node 18 elsewhere. If you add a workspace with a
 stricter Node requirement, bump the CI matrix in `.github/workflows/ci.yml` accordingly.
 
 ## Documentation site (`apps/docs`)
@@ -107,21 +107,21 @@ TypeDoc emits it — fence code examples in doc comments (see `SELECTED_ATTRIBUT
 ## Package graph
 
 ```
-@eugine/core  (no deps; no DOM/React)
-   ├─ @eugine/renderer          (browser DOM renderer)
-   ├─ @eugine/renderer-server   (SSR-safe HTML renderer)
-   ├─ @eugine/versioning        (persistent document versions — a plugin, not a core feature)
+@euginejs/core  (no deps; no DOM/React)
+   ├─ @euginejs/renderer          (browser DOM renderer)
+   ├─ @euginejs/renderer-server   (SSR-safe HTML renderer)
+   ├─ @euginejs/versioning        (persistent document versions — a plugin, not a core feature)
    └─ eugine                    (re-exports core; eugine/renderer, eugine/server, eugine/versioning subpaths)
 ```
 
-`eugine` is the package most consumers install; `@eugine/*` packages can be used standalone.
+`eugine` is the package most consumers install; `@euginejs/*` packages can be used standalone.
 Every package builds both ESM and CJS with an explicit `exports` map — there's no default-export
 ambiguity to worry about, and workspace-internal deps resolve via npm symlinks without needing a
 publish. Adding a new workspace package that other packages depend on means adding it to the
 explicit `-w` list in the root `build`/`build:docs` scripts, in dependency order — see the note in
 the Commands section above.
 
-**`@eugine/versioning` is intentionally not part of `@eugine/core`.** The PRD (§75) is explicit:
+**`@euginejs/versioning` is intentionally not part of `@euginejs/core`.** The PRD (§75) is explicit:
 persistent document versions ("Draft v12" / "Published v10", with rollback) should "remain outside
 the core unless a dedicated plugin provides it" — this is a different concept from `History`
 (in-session undo/redo, ephemeral, cleared on `editor.load()`). `Versioning` installs via
@@ -211,7 +211,7 @@ renderers resolve `node.type` strictly via `registry.tryGet()`/`registry.get()` 
 dynamically import anything named inside document data — this is the security boundary described
 in PRD §61–63; preserve it in any new renderer.
 
-`@eugine/renderer`'s `dom.ts` update algorithm: reconcile walks the tree, reuses a node's cached
+`@euginejs/renderer`'s `dom.ts` update algorithm: reconcile walks the tree, reuses a node's cached
 DOM element when `previousNode === node` (recursing into children regardless, since a changed
 descendant patches itself into the live DOM via `replaceChild`/`replaceWith` without needing its
 ancestors to rebuild), and garbage-collects the element cache for ids no longer visited.

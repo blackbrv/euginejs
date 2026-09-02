@@ -1,4 +1,4 @@
-import { createId, EventBus, type Editor, type EuginePlugin, type IdFactory } from "@eugine/core";
+import { createId, EventBus, type Editor, type EuginePlugin, type IdFactory } from "@euginejs/core";
 import type { DocumentVersion, VersionAdapter } from "./adapter.js";
 import { VersioningError } from "./errors.js";
 
@@ -53,14 +53,14 @@ export interface VersioningEvents {
 
 /**
  * Persistent, durable document versions — "Draft v12" / "Published v10"
- * (PRD §75) — kept deliberately separate from `@eugine/core`'s `History`
+ * (PRD §75) — kept deliberately separate from `@euginejs/core`'s `History`
  * (in-session undo/redo, cleared on `editor.load()`, gone on page refresh).
  * A version is a checkpoint a host creates explicitly (on publish, on a
  * timer, on a "save version" button) via `createVersion()`, not something
  * recorded on every keystroke.
  *
  * Installs as a plugin (`editor.use(new Versioning(...))`) rather than
- * living in `@eugine/core` itself — see PRD §75: "Version management itself
+ * living in `@euginejs/core` itself — see PRD §75: "Version management itself
  * should remain outside the core unless a dedicated plugin provides it."
  *
  * Every error this class throws is a `VersioningError` — including one

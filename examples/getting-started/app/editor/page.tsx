@@ -46,7 +46,7 @@ function createDomRegistry(): ComponentRegistry<DomComponentRenderer> {
 /**
  * A Client Component: this is the browser-only half of the app, behind the
  * "use client" boundary Next.js requires for interactive/stateful UI. The
- * editor engine (@eugine/core) has no DOM dependency itself, but mounting
+ * editor engine (@euginejs/core) has no DOM dependency itself, but mounting
  * the DOM renderer must happen inside useEffect, since it needs a real
  * `document` to build elements into — which doesn't exist during SSR.
  */

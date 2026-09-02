@@ -3,7 +3,7 @@ title: Error Reference
 description: Every error code, what triggers it, and how to fix it.
 ---
 
-Every error `@eugine/core` throws is an `EugineError` — never a plain `Error`, never a bare string
+Every error `@euginejs/core` throws is an `EugineError` — never a plain `Error`, never a bare string
 — so you can always branch on `.code` instead of parsing a message:
 
 ```ts
@@ -24,7 +24,7 @@ try {
 below); `error.cause` carries the original error when one was wrapped, per the standard `Error`
 `cause` chain.
 
-## Core errors (`@eugine/core`)
+## Core errors (`@euginejs/core`)
 
 | Code | Thrown when |
 | --- | --- |
@@ -107,10 +107,10 @@ A command's `undo()`/`redo()` threw mid-replay. The document is rolled back to e
 before the replay started, and both the undo and redo stacks are left untouched — the transaction
 is still there to retry or inspect via `.cause`. See [History](/docs/concepts/history).
 
-## Versioning errors (`@eugine/versioning`)
+## Versioning errors (`@euginejs/versioning`)
 
 A separate error class, `VersioningError` — not a new `EugineErrorCode` variant, since this package
-doesn't modify `@eugine/core`'s error taxonomy. Same shape (`.code`, `.context`, `.cause`),
+doesn't modify `@euginejs/core`'s error taxonomy. Same shape (`.code`, `.context`, `.cause`),
 distinguished with `instanceof VersioningError` or `error.name === "VersioningError"`.
 
 | Code | Thrown when |

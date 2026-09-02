@@ -33,5 +33,5 @@ import { renderToDom } from "eugine/renderer"; // browser, incremental DOM updat
 import { renderToString } from "eugine/server"; // Node.js / SSR, zero browser APIs
 ```
 
-See the repository root README for the full architecture, or `@eugine/core`, `@eugine/renderer`
-and `@eugine/renderer-server` individually if you only need one piece.
+See the repository root README for the full architecture, or `@euginejs/core`, `@euginejs/renderer`
+and `@euginejs/renderer-server` individually if you only need one piece.

@@ -3,7 +3,7 @@ title: Server Rendering
 description: Turning a document into HTML with no editor runtime.
 ---
 
-`@eugine/renderer-server` renders an `EugineDocument` to a deterministic HTML string. It has no
+`@euginejs/renderer-server` renders an `EugineDocument` to a deterministic HTML string. It has no
 browser API dependencies — its TypeScript config excludes the `DOM` lib entirely, so a `window`
 reference is a compile error, not a production incident.
 
@@ -35,10 +35,10 @@ controlled data in any multi-tenant product.
 ## Deployment shape
 
 The renderer runtime and the editor runtime are different deployment targets. A published-pages
-service can depend on `@eugine/renderer-server` alone and never ship a byte of editor code:
+service can depend on `@euginejs/renderer-server` alone and never ship a byte of editor code:
 
 ```bash
-npm install @eugine/renderer-server
+npm install @euginejs/renderer-server
 ```
 
 ## Keeping the two renderers honest

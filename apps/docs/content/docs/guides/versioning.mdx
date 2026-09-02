@@ -4,19 +4,19 @@ description: Durable "Draft v3" / "Published v2" checkpoints, separate from undo
 ---
 
 ```bash
-npm install @eugine/versioning
+npm install @euginejs/versioning
 ```
 
 ## Not the same thing as History
 
 `History` (`editor.history`) is an in-session undo/redo stack — ephemeral, cleared on
-`editor.load()`, gone on refresh. `@eugine/versioning`'s `Versioning` is the opposite: durable
+`editor.load()`, gone on refresh. `@euginejs/versioning`'s `Versioning` is the opposite: durable
 checkpoints a host creates *explicitly* ("Save version", "Publish", a periodic timer) that persist
 through a refresh, a deploy, or a different editing session, because they're written through a
 `VersionAdapter` you provide.
 
 <Callout type="info">
-  This is a separate package, not part of `@eugine/core` — the PRD is explicit that "version
+  This is a separate package, not part of `@euginejs/core` — the PRD is explicit that "version
   management itself should remain outside the core unless a dedicated plugin provides it." A host
   that doesn't need persistent versions pays nothing for this feature.
 </Callout>
@@ -25,7 +25,7 @@ through a refresh, a deploy, or a different editing session, because they're wri
 
 ```ts
 import { createEditor } from "eugine";
-import { MemoryVersionAdapter, Versioning } from "@eugine/versioning";
+import { MemoryVersionAdapter, Versioning } from "@euginejs/versioning";
 
 const editor = createEditor();
 const versioning = new Versioning({ adapter: new MemoryVersionAdapter(), documentId: "home-page" });
@@ -57,7 +57,7 @@ interface VersionAdapter {
 }
 ```
 
-Unlike `@eugine/core`'s `StorageAdapter` (one current document per id, free to overwrite), a
+Unlike `@euginejs/core`'s `StorageAdapter` (one current document per id, free to overwrite), a
 `VersionAdapter` **must never overwrite or delete an existing version**. Notice `save()` takes a
 version *without* a `number` and returns one *with* one — assigning it is the adapter's job, not
 `Versioning`'s: only your backend can make "the next number" atomic for itself (a database

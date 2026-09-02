@@ -1,5 +1,5 @@
 {
-  "name": "@eugine/renderer-server",
+  "name": "@euginejs/renderer-server",
   "version": "0.1.0",
   "description": "Deterministic, browser-API-free HTML renderer for Eugine documents. Safe to run in Node.js server contexts (e.g. Next.js Server Components) without loading the visual editor.",
   "type": "module",
@@ -28,7 +28,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@eugine/core": "0.1.0"
+    "@euginejs/core": "0.1.0"
   },
   "publishConfig": {
     "access": "public"

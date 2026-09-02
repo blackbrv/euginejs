@@ -22,7 +22,7 @@ registry.registerOrReplace({
 });
 
 // #region mount
-// @eugine/renderer only ever touches `globalThis.document.createElement` /
+// @euginejs/renderer only ever touches `globalThis.document.createElement` /
 // `createComment` — no `window` reference, no same-origin assumption, no
 // drag-event wiring — so mounting into a same-origin iframe's own document
 // needs no library changes. Call this once the iframe has finished loading
@@ -37,7 +37,7 @@ export function mountInIframe(iframe: HTMLIFrameElement) {
 
   // The editor instance lives in the parent's script context; only the
   // rendered DOM lives inside the iframe. "document.change" alone is enough
-  // here — editor.load() (e.g. from @eugine/versioning's restoreVersion())
+  // here — editor.load() (e.g. from @euginejs/versioning's restoreVersion())
   // still fires it, since it writes through the same DocumentStore.set()
   // that every other mutation does, in addition to its own "document.load".
   const off = editor.events.on("document.change", ({ document }) => renderer.update(document));
@@ -50,7 +50,7 @@ export function mountInIframe(iframe: HTMLIFrameElement) {
 // #endregion mount
 
 // #region coordinates
-// getDropPosition() is pure geometry (see @eugine/renderer's dragDrop.ts) —
+// getDropPosition() is pure geometry (see @euginejs/renderer's dragDrop.ts) —
 // it just needs `rect` and `pointer` expressed in the SAME coordinate space.
 // A pointer/drag event captured on the PARENT window reports clientX/clientY
 // relative to the parent's viewport; an element living *inside* the iframe

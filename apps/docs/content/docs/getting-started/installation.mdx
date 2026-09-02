@@ -19,19 +19,19 @@ import { renderToString } from "eugine/server"; // SSR
 
 ## Installing packages individually
 
-Every package is publishable and consumable on its own. Install only `@eugine/core` if you are
-writing your own renderer, or only `@eugine/renderer-server` in a service that renders published
+Every package is publishable and consumable on its own. Install only `@euginejs/core` if you are
+writing your own renderer, or only `@euginejs/renderer-server` in a service that renders published
 pages and never runs an editor.
 
 ```bash
-npm install @eugine/core @eugine/renderer-server
+npm install @euginejs/core @euginejs/renderer-server
 ```
 
 ## Requirements
 
-- **Node.js 18.18 or newer** for the `@eugine/*` packages themselves.
+- **Node.js 18.18 or newer** for the `@euginejs/*` packages themselves.
 - **TypeScript 5.x** if you are using types. Every package ships ESM + CJS builds with full
   declarations and an explicit `exports` map, so there is no default-export ambiguity.
 
-Eugine has **no runtime dependencies**. `@eugine/core` does not import React, the DOM, or any
+Eugine has **no runtime dependencies**. `@euginejs/core` does not import React, the DOM, or any
 styling library.

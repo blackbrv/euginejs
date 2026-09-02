@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # The @eugine/* library packages support Node >=18.18, but this repo
+        # The @euginejs/* library packages support Node >=18.18, but this repo
         # also builds the Next.js examples (examples/*), which require Node
         # >=20.9 — `npm run build` runs across every workspace, so the whole
         # matrix must satisfy the strictest requirement in the tree.
@@ -25,13 +25,13 @@ jobs:
       # build MUST run before typecheck: packages resolve each other via
       # their published "types" field (./dist/*.d.ts), which only exists
       # after a build. Running typecheck first fails with "Cannot find
-      # module '@eugine/core'" on a fresh checkout.
+      # module '@euginejs/core'" on a fresh checkout.
       - run: npm run build
       - run: npm run typecheck
       - run: npm run test
       - name: Validate npm package contents
         run: |
           for pkg in core renderer renderer-server versioning; do
-            npm pack --dry-run -w "@eugine/$pkg"
+            npm pack --dry-run -w "@euginejs/$pkg"
           done
           npm pack --dry-run -w eugine

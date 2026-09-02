@@ -1,4 +1,4 @@
-import { ComponentRegistry, createEmptyDocument, createNode, insertNode, removeNode, updateNodeProps } from "@eugine/core";
+import { ComponentRegistry, createEmptyDocument, createNode, insertNode, removeNode, updateNodeProps } from "@euginejs/core";
 import { describe, expect, it } from "vitest";
 import { renderToDom, SELECTED_ATTRIBUTE, type DomComponentRenderer } from "../src/dom.js";
 

@@ -52,7 +52,7 @@ function buildHtmlRegistry(): ComponentRegistry<HtmlComponentRenderer> {
 }
 
 /**
- * Renders the document to an HTML fragment using @eugine/renderer-server —
+ * Renders the document to an HTML fragment using @euginejs/renderer-server —
  * the SAME server-safe renderer a Node.js backend would use, running here in
  * the browser only because it happens to have zero browser-API dependencies.
  */

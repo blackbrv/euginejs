@@ -3,7 +3,7 @@ import { createEditor } from "eugine";
 import { renderToDom, type DomComponentRenderer } from "eugine/renderer";
 import { renderToString, type HtmlComponentRenderer } from "eugine/server";
 import { MemoryVersionAdapter, Versioning, VersioningError } from "eugine/versioning";
-import { ComponentRegistry } from "@eugine/core";
+import { ComponentRegistry } from "@euginejs/core";
 
 /**
  * End-to-end smoke test of the developer workflow described in the PRD

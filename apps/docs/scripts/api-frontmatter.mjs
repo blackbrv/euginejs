@@ -15,10 +15,10 @@ import path from "node:path";
 const API_DIR = path.join(process.cwd(), "content", "docs", "api");
 
 const PACKAGE_TITLES = {
-  core: "@eugine/core",
-  renderer: "@eugine/renderer",
-  "renderer-server": "@eugine/renderer-server",
-  versioning: "@eugine/versioning",
+  core: "@euginejs/core",
+  renderer: "@euginejs/renderer",
+  "renderer-server": "@euginejs/renderer-server",
+  versioning: "@euginejs/versioning",
   eugine: "eugine",
 };
 

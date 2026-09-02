@@ -1,5 +1,5 @@
-import { ComponentRegistry, EugineError, getNode } from "@eugine/core";
-import type { EugineDocument, EugineNode, NodeProps } from "@eugine/core";
+import { ComponentRegistry, EugineError, getNode } from "@euginejs/core";
+import type { EugineDocument, EugineNode, NodeProps } from "@euginejs/core";
 import { escapeAttribute, escapeHtml } from "./sanitize.js";
 
 export interface HtmlRenderContext<TData = unknown> {

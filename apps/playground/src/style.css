@@ -634,7 +634,7 @@ button {
 }
 
 /*
- * Selection marker — see @eugine/renderer's `data-eugine-selected`
+ * Selection marker — see @euginejs/renderer's `data-eugine-selected`
  * attribute (README: "Selection marker"). Eugine ships no default look for
  * this; everything below is this app's own choice, freely swappable for a
  * different outline, a corner handle, a floating toolbar, etc.

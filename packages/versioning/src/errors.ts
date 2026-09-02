@@ -11,11 +11,11 @@ export interface VersioningErrorOptions {
 
 /**
  * Every error this package throws is a VersioningError, mirroring
- * `@eugine/core`'s EugineError so hosts already branching on `.code`
+ * `@euginejs/core`'s EugineError so hosts already branching on `.code`
  * elsewhere in Eugine find the same shape here — but it is deliberately a
  * separate class (`error instanceof VersioningError`, `error.name ===
  * "VersioningError"`), not a new `EugineErrorCode` variant: this package
- * doesn't modify `@eugine/core`'s closed error-code union.
+ * doesn't modify `@euginejs/core`'s closed error-code union.
  */
 export class VersioningError extends Error {
   public readonly code: VersioningErrorCode;

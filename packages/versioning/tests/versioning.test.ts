@@ -1,4 +1,4 @@
-import { createEditor } from "@eugine/core";
+import { createEditor } from "@euginejs/core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { MemoryVersionAdapter } from "../src/adapter.js";
 import { VersioningError } from "../src/errors.js";

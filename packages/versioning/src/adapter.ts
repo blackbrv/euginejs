@@ -1,8 +1,8 @@
-import type { SerializedDocument } from "@eugine/core";
+import type { SerializedDocument } from "@euginejs/core";
 
 /**
  * A durable, permanent snapshot of a document — distinct from an in-session
- * undo/redo `Transaction` (`@eugine/core`'s `History`), which is ephemeral
+ * undo/redo `Transaction` (`@euginejs/core`'s `History`), which is ephemeral
  * and cleared on `editor.load()`. `document` is the full serialized envelope
  * (schemaVersion included), so restoring an old version runs through the
  * exact same `editor.load()` migration path as any other document.
@@ -24,7 +24,7 @@ export interface DocumentVersion {
 
 /**
  * Where version history is stored. Deliberately separate from
- * `@eugine/core`'s `StorageAdapter`: that interface holds exactly one
+ * `@euginejs/core`'s `StorageAdapter`: that interface holds exactly one
  * current document per id and is free to overwrite it on every save, which
  * is the opposite of what version history needs — an adapter here must
  * never overwrite or delete an existing version.
@@ -60,7 +60,7 @@ function cloneVersion(version: DocumentVersion): DocumentVersion {
 
 /**
  * Non-persistent adapter, useful for tests and quick prototyping — mirrors
- * `@eugine/core`'s `MemoryStorageAdapter` in spirit. Keeps every version
+ * `@euginejs/core`'s `MemoryStorageAdapter` in spirit. Keeps every version
  * ever saved, per document id, for the life of the process.
  *
  * `save()` is synchronous and numbers versions from the last entry in its

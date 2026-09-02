@@ -2377,14 +2377,14 @@ Eventually Eugine should have a plugin ecosystem.
 Potential official plugins:
 
 ```text
-@eugine/history
-@eugine/react
-@eugine/server
-@eugine/tailwind
-@eugine/assets
-@eugine/collaboration
-@eugine/commands
-@eugine/storage
+@euginejs/history
+@euginejs/react
+@euginejs/server
+@euginejs/tailwind
+@euginejs/assets
+@euginejs/collaboration
+@euginejs/commands
+@euginejs/storage
 ```
 
 Exact package naming should be determined after npm namespace/name validation.

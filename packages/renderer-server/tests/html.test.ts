@@ -1,4 +1,4 @@
-import { ComponentRegistry, createEmptyDocument, createNode, insertNode } from "@eugine/core";
+import { ComponentRegistry, createEmptyDocument, createNode, insertNode } from "@euginejs/core";
 import { describe, expect, it } from "vitest";
 import { renderToString, type HtmlComponentRenderer } from "../src/html.js";
 import { attributesToHtml, escapeHtml, sanitizeUrl } from "../src/sanitize.js";

@@ -1,5 +1,5 @@
 {
-  "name": "@eugine/core",
+  "name": "@euginejs/core",
   "version": "0.1.0",
   "description": "Eugine core engine: document model, component registry, commands, history and events for building visual editors.",
   "type": "module",

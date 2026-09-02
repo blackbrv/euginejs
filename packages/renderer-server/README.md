@@ -1,15 +1,15 @@
-# @eugine/renderer-server
+# @euginejs/renderer-server
 
 A deterministic, browser-API-free HTML renderer for Eugine documents. Safe to run in Node.js server contexts — including React Server Components / Next.js
 App Router — without loading the visual editor at all.
 
 ```bash
-npm install @eugine/renderer-server @eugine/core
+npm install @euginejs/renderer-server @euginejs/core
 ```
 
 ```ts
-import { ComponentRegistry } from "@eugine/core";
-import { renderToString, type HtmlComponentRenderer } from "@eugine/renderer-server";
+import { ComponentRegistry } from "@euginejs/core";
+import { renderToString, type HtmlComponentRenderer } from "@euginejs/renderer-server";
 
 const registry = new ComponentRegistry<HtmlComponentRenderer>();
 registry.register({ type: "root", render: (_props, children) => `<main>${children}</main>` });
@@ -26,7 +26,7 @@ standalone `.html` file (`<!doctype html>`/`<head>`/`<body>` and all), use `rend
 it calls `renderToString` internally with the same options and wraps the result:
 
 ```ts
-import { renderToPage } from "@eugine/renderer-server";
+import { renderToPage } from "@euginejs/renderer-server";
 
 const page = renderToPage(document, {
   registry,

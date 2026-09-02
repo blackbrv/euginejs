@@ -1,1 +1,1 @@
-export * from "@eugine/versioning";
+export * from "@euginejs/versioning";

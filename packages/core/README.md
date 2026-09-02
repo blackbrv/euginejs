@@ -1,4 +1,4 @@
-# @eugine/core
+# @euginejs/core
 
 The core engine behind Eugine: a document model, component
 registry, command/history system, selection state, serialization and a plugin runtime for building
@@ -8,7 +8,7 @@ This package has **no dependency on React, the DOM, or any specific styling libr
 layer described in the Eugine PRD as "the engine" — you build the UI around it.
 
 ```bash
-npm install @eugine/core
+npm install @euginejs/core
 # or, for the whole family (core + renderer + renderer-server):
 npm install eugine
 ```
@@ -16,7 +16,7 @@ npm install eugine
 ## Quick start
 
 ```ts
-import { createEditor } from "@eugine/core";
+import { createEditor } from "@euginejs/core";
 
 const editor = createEditor({
   components: [
@@ -92,5 +92,5 @@ replays each command's inverse against the *current* document, which is safe —
 a concurrent edit or throw — but it does not transform intent the way a CRDT or OT layer would. The
 operation stream is the input either of those would consume; choosing between them is still open.
 
-See the repository root README for the full architecture overview, and `@eugine/renderer` /
-`@eugine/renderer-server` for rendering a document to the browser or to an HTML string.
+See the repository root README for the full architecture overview, and `@euginejs/renderer` /
+`@euginejs/renderer-server` for rendering a document to the browser or to an HTML string.

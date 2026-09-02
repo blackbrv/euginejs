@@ -1,4 +1,4 @@
-import type { EugineDocument } from "@eugine/core";
+import type { EugineDocument } from "@euginejs/core";
 import { renderToString, type RenderToStringOptions } from "./html.js";
 import { attributesToHtml, escapeHtml } from "./sanitize.js";
 

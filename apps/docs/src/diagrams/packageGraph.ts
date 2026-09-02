@@ -11,7 +11,7 @@ export const packageGraphDiagram: DiagramDefinition<NodeId> = {
   nodes: [
     {
       id: "core",
-      label: "@eugine/core",
+      label: "@euginejs/core",
       description:
         "The document model, component registry, commands, history, events, and serialization. No dependencies; no DOM, no React.",
       x: 0,
@@ -20,14 +20,14 @@ export const packageGraphDiagram: DiagramDefinition<NodeId> = {
     },
     {
       id: "renderer",
-      label: "@eugine/renderer",
-      description: "The browser DOM renderer. Imports @eugine/core, but only re-exports a subset.",
+      label: "@euginejs/renderer",
+      description: "The browser DOM renderer. Imports @euginejs/core, but only re-exports a subset.",
       x: -380,
       y: 190,
     },
     {
       id: "rendererServer",
-      label: "@eugine/renderer-server",
+      label: "@euginejs/renderer-server",
       description:
         "The SSR-safe HTML renderer. Excludes the DOM lib from its TypeScript config.",
       x: -120,
@@ -35,7 +35,7 @@ export const packageGraphDiagram: DiagramDefinition<NodeId> = {
     },
     {
       id: "versioning",
-      label: "@eugine/versioning",
+      label: "@euginejs/versioning",
       description:
         "Persistent document versions (Draft v12 / Published v10) — a plugin installed via editor.use(), not a core feature.",
       x: 140,

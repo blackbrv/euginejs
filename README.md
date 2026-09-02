@@ -24,11 +24,11 @@ This is an npm workspaces monorepo:
 
 | Package | What it is |
 | --- | --- |
-| [`eugine`](./packages/eugine) | Convenience package: re-exports `@eugine/core`, plus `eugine/renderer`, `eugine/server`, and `eugine/versioning` subpaths. This is what most apps install. |
-| [`@eugine/core`](./packages/core) | The engine: document model, component registry, commands, history, selection, serialization, plugin system, storage adapter interface. No DOM, no React. |
-| [`@eugine/renderer`](./packages/renderer) | Browser DOM renderer with localized (per-node) incremental updates. |
-| [`@eugine/renderer-server`](./packages/renderer-server) | Deterministic HTML string renderer with zero browser API dependencies — safe for Next.js Server Components and other SSR contexts. |
-| [`@eugine/versioning`](./packages/versioning) | Optional plugin for persistent, durable document versions (create/list/roll back) — separate from in-session undo/redo. |
+| [`eugine`](./packages/eugine) | Convenience package: re-exports `@euginejs/core`, plus `eugine/renderer`, `eugine/server`, and `eugine/versioning` subpaths. This is what most apps install. |
+| [`@euginejs/core`](./packages/core) | The engine: document model, component registry, commands, history, selection, serialization, plugin system, storage adapter interface. No DOM, no React. |
+| [`@euginejs/renderer`](./packages/renderer) | Browser DOM renderer with localized (per-node) incremental updates. |
+| [`@euginejs/renderer-server`](./packages/renderer-server) | Deterministic HTML string renderer with zero browser API dependencies — safe for Next.js Server Components and other SSR contexts. |
+| [`@euginejs/versioning`](./packages/versioning) | Optional plugin for persistent, durable document versions (create/list/roll back) — separate from in-session undo/redo. |
 
 Each package builds to ESM + CJS with full TypeScript declarations and an explicit `exports` map
 (no default-export ambiguity), and can be depended on independently.
@@ -42,7 +42,7 @@ The single most important architectural rule in this codebase (PRD §10, §143):
 An `EugineDocument` is a plain, JSON-serializable tree (flat, keyed by node id, so structural
 updates only touch the nodes they actually change). It never contains editor-only state —
 selection, viewport, drag state, open panels — only persisted content: node types, props, styles,
-class names and structure. That's what makes `@eugine/renderer-server` able to turn a document
+class names and structure. That's what makes `@euginejs/renderer-server` able to turn a document
 into HTML with no editor runtime, no `window`/`document`/`localStorage`, and a fully deterministic
 output for identical input.
 
@@ -85,7 +85,7 @@ editor.load(json);
 Render the same document two ways from a shared registry contract:
 
 ```ts
-import { ComponentRegistry } from "@eugine/core";
+import { ComponentRegistry } from "@euginejs/core";
 import { renderToDom } from "eugine/renderer";     // browser
 import { renderToString } from "eugine/server";    // Node / SSR, no editor runtime required
 ```
@@ -98,10 +98,10 @@ See each package's README for the full API and more examples.
 eugine/
 ├── PRD.md                    product requirements this implementation targets
 ├── packages/
-│   ├── core/                  @eugine/core   — document model, registry, commands, history
-│   ├── renderer/               @eugine/renderer        — browser DOM renderer
-│   ├── renderer-server/        @eugine/renderer-server  — SSR-safe HTML renderer
-│   ├── versioning/             @eugine/versioning       — persistent document versions (plugin)
+│   ├── core/                  @euginejs/core   — document model, registry, commands, history
+│   ├── renderer/               @euginejs/renderer        — browser DOM renderer
+│   ├── renderer-server/        @euginejs/renderer-server  — SSR-safe HTML renderer
+│   ├── versioning/             @euginejs/versioning       — persistent document versions (plugin)
 │   └── eugine/                 eugine                  — convenience re-export package
 ├── package.json                workspace root
 └── tsconfig.base.json          shared TypeScript config

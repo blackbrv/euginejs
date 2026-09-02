@@ -14,5 +14,5 @@ export default defineConfig({
   target: "es2020",
   splitting: false,
   treeshake: true,
-  external: ["@eugine/core", "@eugine/renderer", "@eugine/renderer-server", "@eugine/versioning"],
+  external: ["@euginejs/core", "@euginejs/renderer", "@euginejs/renderer-server", "@euginejs/versioning"],
 });

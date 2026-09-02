@@ -1,1 +1,1 @@
-export * from "@eugine/renderer";
+export * from "@euginejs/renderer";

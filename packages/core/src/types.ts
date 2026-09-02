@@ -33,7 +33,7 @@ export interface EugineNode {
   hidden?: boolean;
 }
 
-/** The root schema version this build of @eugine/core understands natively. */
+/** The root schema version this build of @euginejs/core understands natively. */
 export const CURRENT_SCHEMA_VERSION = 1;
 
 /**

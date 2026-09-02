@@ -710,26 +710,26 @@ const PACKAGE_ROWS = [
     recommended: true,
   },
   {
-    name: "@eugine/core",
-    file: "@eugine/core",
+    name: "@euginejs/core",
+    file: "@euginejs/core",
     blurb: "Document model, registry, commands, history, serialization.",
     recommended: false,
   },
   {
-    name: "@eugine/renderer",
-    file: "@eugine/renderer",
+    name: "@euginejs/renderer",
+    file: "@euginejs/renderer",
     blurb: "Browser DOM renderer, per-node incremental updates.",
     recommended: false,
   },
   {
-    name: "@eugine/renderer-server",
-    file: "@eugine/renderer-server",
+    name: "@euginejs/renderer-server",
+    file: "@euginejs/renderer-server",
     blurb: "Deterministic HTML string renderer, zero browser APIs.",
     recommended: false,
   },
   {
-    name: "@eugine/versioning",
-    file: "@eugine/versioning",
+    name: "@euginejs/versioning",
+    file: "@euginejs/versioning",
     blurb: "Optional plugin for durable versions and rollback.",
     recommended: false,
   },
@@ -746,7 +746,7 @@ function Packages() {
           </h2>
           <p className="mt-4 text-fd-muted-foreground">
             Install <span className="font-mono text-fd-foreground">eugine</span> for everything, or each{" "}
-            <span className="font-mono text-fd-foreground">@eugine/*</span> package on its own. The
+            <span className="font-mono text-fd-foreground">@euginejs/*</span> package on its own. The
             engine is the dependency; the rendering and versioning surfaces are separate deployment
             targets.
           </p>

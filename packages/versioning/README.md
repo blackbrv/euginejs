@@ -1,19 +1,19 @@
-# @eugine/versioning
+# @euginejs/versioning
 
 Persistent, durable document versions — "Draft v12" / "Published v10" — for a host that wants a
 user to save named checkpoints and roll back to one later. This is **not** undo/redo: `History` in
-`@eugine/core` is an in-session command stack that's cleared on `editor.load()` and gone on page
+`@euginejs/core` is an in-session command stack that's cleared on `editor.load()` and gone on page
 refresh; a `Versioning` version survives a refresh, a deploy, or a different editing session,
 because it's written through a `VersionAdapter` you provide (a REST API, IndexedDB, a database —
 anything).
 
 ```bash
-npm install @eugine/versioning @eugine/core
+npm install @euginejs/versioning @euginejs/core
 ```
 
 ```ts
-import { createEditor } from "@eugine/core";
-import { MemoryVersionAdapter, Versioning } from "@eugine/versioning";
+import { createEditor } from "@euginejs/core";
+import { MemoryVersionAdapter, Versioning } from "@euginejs/versioning";
 
 const editor = createEditor();
 const versioning = new Versioning({ adapter: new MemoryVersionAdapter(), documentId: "home-page" });
@@ -38,13 +38,13 @@ await versioning.restoreVersion(v1.id);
 
 The PRD is explicit about this: "Version management itself should remain outside the core unless a
 dedicated plugin provides it." `Versioning` installs onto an `Editor` as a plugin
-(`editor.use(...)`) rather than living in `@eugine/core`, so a host that doesn't need persistent
+(`editor.use(...)`) rather than living in `@euginejs/core`, so a host that doesn't need persistent
 versions pays nothing for this feature — no extra dependency, no extra API surface on `Editor`
 itself.
 
 ## Bring your own storage
 
-`VersionAdapter` has three methods — `save`, `list`, `get` — and, unlike `@eugine/core`'s
+`VersionAdapter` has three methods — `save`, `list`, `get` — and, unlike `@euginejs/core`'s
 `StorageAdapter` (which holds one current document and is free to overwrite it), **must never
 overwrite or delete an existing version**. `Versioning` assigns each version's id and content;
 **your adapter assigns the version `number`** and returns the saved version — that's deliberate,
