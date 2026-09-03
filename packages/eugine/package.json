@@ -1,6 +1,6 @@
 {
   "name": "eugine",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Eugine: an extensible engine for building drag-and-drop visual editors and page builders. Install this package to get the core engine, plus eugine/renderer and eugine/server for browser and server-safe rendering, and eugine/versioning for persistent document versions.",
   "type": "module",
   "license": "MIT",
@@ -44,9 +44,9 @@
   },
   "dependencies": {
     "@euginejs/core": "0.1.1",
-    "@euginejs/renderer": "0.1.1",
-    "@euginejs/renderer-server": "0.1.1",
-    "@euginejs/versioning": "0.1.1"
+    "@euginejs/renderer": "0.1.2",
+    "@euginejs/renderer-server": "0.1.2",
+    "@euginejs/versioning": "0.1.2"
   },
   "devDependencies": {
     "jsdom": "^25.0.1"

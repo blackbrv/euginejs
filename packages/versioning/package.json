@@ -1,6 +1,6 @@
 {
   "name": "@euginejs/versioning",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Persistent, durable site/document versioning for Eugine — create, list, and roll back document versions independently of the editor's in-session undo/redo history.",
   "type": "module",
   "license": "MIT",

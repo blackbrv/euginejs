@@ -1,6 +1,6 @@
 {
   "name": "@euginejs/renderer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Browser DOM renderer for Eugine documents, with localized (per-node) updates instead of full-document re-renders.",
   "type": "module",
   "license": "MIT",

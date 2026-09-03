@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.11.5",
-    "eugine": "0.1.1",
+    "eugine": "0.1.2",
     "fumadocs-core": "^16.15.4",
     "fumadocs-mdx": "^15.4.0",
     "fumadocs-ui": "^16.15.4",
