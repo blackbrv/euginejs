@@ -37,6 +37,7 @@ import {
   Database,
   Layers,
   LayoutTemplate,
+  Menu,
   MoreHorizontal,
   MousePointer2,
   Palette,
@@ -93,14 +94,52 @@ function IconTile({ icon: Icon, className }: { icon: LucideIcon; className?: str
 /* Navigation                                                          */
 /* ------------------------------------------------------------------ */
 
+interface NavLinkItem {
+  href: string;
+  label: string;
+}
+
+// /playground is a separate static SPA served via a rewrite (see
+// next.config.mjs), not an App Router page — next/link's soft navigation
+// assumes a page in this app's route tree, so it gets a plain <a> (full
+// page load) instead of everything else here.
+function NavLink({
+  link,
+  className,
+  onClick,
+}: {
+  link: NavLinkItem;
+  className: string;
+  onClick?: () => void;
+}) {
+  if (link.href === "/playground") {
+    return (
+      <a href={link.href} className={className} onClick={onClick}>
+        {link.label}
+      </a>
+    );
+  }
+  return (
+    <Link
+      href={link.href}
+      className={className}
+      prefetch={link.href.startsWith("/docs") ? false : undefined}
+      onClick={onClick}
+    >
+      {link.label}
+    </Link>
+  );
+}
+
 function Nav({ onSearch }: { onSearch: () => void }) {
-  const links = [
+  const links: NavLinkItem[] = [
     { href: "#features", label: "Features" },
     { href: "#workflow", label: "Workflow" },
     { href: "#packages", label: "Packages" },
     { href: "/docs", label: "Docs" },
     { href: "/playground", label: "Playground" },
   ];
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <header className="fixed top-0 z-50 w-full border-b border-fd-border bg-fd-background/80 backdrop-blur-md">
       <nav
@@ -115,29 +154,11 @@ function Nav({ onSearch }: { onSearch: () => void }) {
         </a>
 
         <ul className="hidden items-center gap-6 text-sm text-fd-muted-foreground md:flex">
-          {links.map((link) =>
-            // /playground is a separate static SPA served via a rewrite (see
-            // next.config.mjs), not an App Router page — next/link's soft
-            // navigation assumes a page in this app's route tree, so it gets
-            // a plain <a> (full page load) instead of everything else here.
-            link.href === "/playground" ? (
-              <li key={link.href}>
-                <a href={link.href} className="transition-colors hover:text-fd-foreground">
-                  {link.label}
-                </a>
-              </li>
-            ) : (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="transition-colors hover:text-fd-foreground"
-                  prefetch={link.href.startsWith("/docs") ? false : undefined}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ),
-          )}
+          {links.map((link) => (
+            <li key={link.href}>
+              <NavLink link={link} className="transition-colors hover:text-fd-foreground" />
+            </li>
+          ))}
         </ul>
 
         <div className="flex items-center gap-3">
@@ -154,14 +175,46 @@ function Nav({ onSearch }: { onSearch: () => void }) {
               <Command className="h-2.5 w-2.5" />K
             </Kbd>
           </button>
+          {/* Hidden below md: at that width the hamburger toggle takes over
+              navigation (including to /docs) and there isn't room for both
+              in the header without overflowing. */}
           <Link
             href="/docs"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-neutral-900"
+            className="hidden items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-neutral-900 md:inline-flex"
           >
             Read docs <ArrowRight className="h-3.5 w-3.5" />
           </Link>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="flex items-center justify-center rounded-lg border border-fd-border bg-fd-muted p-2 text-fd-muted-foreground transition-colors hover:border-fd-primary/30 hover:text-fd-foreground md:hidden"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav-panel"
+          >
+            {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
         </div>
       </nav>
+
+      {menuOpen ? (
+        <div
+          id="mobile-nav-panel"
+          className="border-t border-fd-border bg-fd-background/95 backdrop-blur-md md:hidden"
+        >
+          <ul className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm text-fd-muted-foreground sm:px-6">
+            {links.map((link) => (
+              <li key={link.href}>
+                <NavLink
+                  link={link}
+                  className="block rounded-lg px-2 py-2 transition-colors hover:bg-fd-muted hover:text-fd-foreground"
+                  onClick={() => setMenuOpen(false)}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </header>
   );
 }
