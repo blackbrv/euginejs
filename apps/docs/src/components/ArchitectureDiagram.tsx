@@ -230,9 +230,8 @@ export function ArchitectureDiagram({ data, title }: ArchitectureDiagramProps) {
       ) : null}
 
       <div
-        className="overflow-hidden rounded-lg border border-fd-border"
+        className="h-[280px] overflow-hidden rounded-lg border border-fd-border sm:h-[360px] lg:h-[460px]"
         style={{
-          height: 460,
           ["--xy-background-color" as string]: isDark ? "#020202" : "#ffffff",
           ["--xy-node-background-color" as string]: "var(--color-fd-card)",
           ["--xy-edge-stroke" as string]: "var(--color-fd-border)",
