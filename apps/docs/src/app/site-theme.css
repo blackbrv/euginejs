@@ -81,15 +81,22 @@
 /* !important on all of these guarantees they win regardless of whether  */
 /* Fumadocs' compiled utility classes happen to have equal specificity  */
 /* and/or a later position in the built stylesheet.                     */
+/*                                                                     */
+/* Scoped to the same 768px (Tailwind's `md`) breakpoint Fumadocs itself */
+/* uses for this: below it, DocsLayout switches to an off-canvas mobile  */
+/* sidebar drawer instead of the fixed-width desktop track these         */
+/* variables target — applying them unconditionally fought that drawer. */
 /* ------------------------------------------------------------------ */
 
-#nd-docs-layout,
-[data-sidebar-placeholder] {
-  --fd-sidebar-width: 230px !important;
-}
+@media (min-width: 768px) {
+  #nd-docs-layout,
+  [data-sidebar-placeholder] {
+    --fd-sidebar-width: 230px !important;
+  }
 
-#nd-docs-layout {
-  --fd-layout-width: 3000px !important;
+  #nd-docs-layout {
+    --fd-layout-width: 3000px !important;
+  }
 }
 
 /* ------------------------------------------------------------------ */
