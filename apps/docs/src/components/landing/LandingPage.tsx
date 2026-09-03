@@ -363,11 +363,15 @@ function HeroGraph() {
           </span>
         </div>
 
-        {/* overflow-x-auto + the inner min-w below let the canvas scroll
-            horizontally within this card on narrow screens, instead of the
-            absolutely-positioned nodes (up to x=330) forcing the whole page
-            to scroll — same pattern as the packages table further down. */}
-        <div className="relative mt-4 h-[340px] w-full overflow-x-auto overflow-y-hidden rounded-xl border border-fd-border bg-fd-muted">
+        {/* overflow-auto + the inner min-w below let the canvas scroll in
+            either direction within this card on narrow screens/heights,
+            instead of the absolutely-positioned nodes (up to x=330, y=300)
+            forcing the whole page to scroll — same pattern as the packages
+            table further down. The panel itself also shrinks at small
+            breakpoints to leave room for the rest of the mobile viewport;
+            overflow-auto (not overflow-y-hidden) keeps that shrink from
+            clipping the graph — it scrolls instead. */}
+        <div className="relative mt-4 h-[220px] w-full overflow-auto rounded-xl border border-fd-border bg-fd-muted sm:h-[260px] md:h-[300px] lg:h-[340px]">
           <div className="relative h-full min-w-[420px]">
             {/* internal grid */}
             <div className="nexus-panel-grid absolute inset-0 opacity-40" />
