@@ -67,7 +67,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
+export function Badge({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-fd-primary/20 bg-fd-accent px-3 py-1 text-xs font-medium text-fd-accent-foreground">
       {children}
@@ -131,7 +131,7 @@ function NavLink({
   );
 }
 
-function Nav({ onSearch }: { onSearch: () => void }) {
+export function Nav({ onSearch }: { onSearch: () => void }) {
   const links: NavLinkItem[] = [
     { href: "#features", label: "Features" },
     { href: "#workflow", label: "Workflow" },
@@ -229,7 +229,7 @@ interface SearchIndexEntry {
   keywords: string;
 }
 
-function SearchModal({
+export function SearchModal({
   open,
   onClose,
   onSelect,
@@ -862,7 +862,7 @@ function Packages() {
 /* Footer + about/contact anchors                                      */
 /* ------------------------------------------------------------------ */
 
-function Footer() {
+export function Footer() {
   return (
     <footer className="border-t border-fd-border">
       {/* Empty anchor targets, matching the source page's structure. */}
