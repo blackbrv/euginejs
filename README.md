@@ -39,7 +39,7 @@ Each package builds to ESM + CJS with full TypeScript declarations and an explic
 
 ## Why a document model, not just HTML
 
-The single most important architectural rule in this codebase (PRD §10, §143):
+The single most important architectural rule in this codebase:
 
 > **The document model must not depend on the editor UI.**
 
@@ -52,7 +52,7 @@ output for identical input.
 
 Component types are resolved strictly against a `ComponentRegistry` you build — a renderer never
 dynamically imports or executes anything named inside a document. That registry is the security
-boundary described in PRD §61–63: untrusted document JSON is data, never code.
+boundary: untrusted document JSON is treated as data, never as code.
 
 ## Documentation
 
@@ -125,13 +125,13 @@ Each package also has its own `build`/`test`/`typecheck`/`clean` scripts you can
 
 ### Quality gates before publishing
 
-Per PRD §84/§132, before publishing any package: build, typecheck, unit + integration tests must
-pass, and `npm pack --dry-run` should be inspected for each package to confirm only `dist/`,
-`package.json`, `README.md` and `LICENSE` are included.
+Before publishing any package: build, typecheck, and unit + integration tests must pass, and
+`npm pack --dry-run` should be inspected for each package to confirm only `dist/`, `package.json`,
+`README.md` and `LICENSE` are included.
 
 ## Design principles this codebase follows
 
-From PRD §127/§143 — the non-negotiables:
+The non-negotiables:
 
 1. Core is not coupled to any UI or framework.
 2. The document model is the source of truth; JSON is the canonical persisted format, HTML is an
