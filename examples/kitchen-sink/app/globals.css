@@ -402,6 +402,32 @@ body {
   white-space: nowrap;
 }
 
+.ks-layer-name-editing {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+  white-space: normal;
+  cursor: text;
+}
+
+.ks-layer-dragging {
+  opacity: 0.5;
+}
+
+.ks-layer-drop-before {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+
+.ks-layer-drop-after {
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
+
+.ks-layer-drop-inside {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
 .ks-layer-actions {
   display: flex;
   gap: 2px;
