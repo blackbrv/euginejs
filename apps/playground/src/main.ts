@@ -23,7 +23,9 @@ app.innerHTML = `
            same origin as the docs site. In a standalone 'vite dev' run there is
            no docs server on this origin, so they 404 locally — expected, not a bug. -->
       <div class="eb-brand">
-        <a href="/" class="eb-brand-mark" title="Back to eugine" aria-label="Back to the eugine site">E</a>
+        <a href="/" class="eb-brand-mark" title="Back to eugine" aria-label="Back to the eugine site">
+          <img src="${import.meta.env.BASE_URL}eugine-logo.png" alt="" />
+        </a>
         <strong>Eugine Playground</strong>
         <a href="/docs" class="eb-brand-docs-link">Docs</a>
       </div>

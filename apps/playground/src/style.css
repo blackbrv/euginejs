@@ -122,16 +122,19 @@ button {
   width: 24px;
   height: 24px;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--accent), #a78bfa);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+  background: var(--surface-alt);
   text-decoration: none;
   cursor: pointer;
-  transition: transform 100ms var(--ease), box-shadow 140ms var(--ease);
+  transition: background 100ms var(--ease), transform 100ms var(--ease), box-shadow 140ms var(--ease);
+}
+
+.eb-brand-mark img {
+  width: 18px;
+  height: 18px;
 }
 
 .eb-brand-mark:hover {
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
   box-shadow: var(--shadow-sm);
 }
 
