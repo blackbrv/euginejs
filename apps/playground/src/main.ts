@@ -9,7 +9,7 @@ import { renderInspector, renderLayers } from "./panels.js";
 import { toComponentDefinitions } from "./schema.js";
 import { LocalStorageAdapter } from "./storageAdapter.js";
 import { showToast } from "./toast.js";
-import { getTheme, initTheme, toggleTheme } from "./theme.js";
+import { getTheme, initTheme, onThemeChange, toggleTheme } from "./theme.js";
 
 initTheme();
 
@@ -153,6 +153,7 @@ themeBtn.addEventListener("click", () => {
   const next = toggleTheme();
   themeBtn.setAttribute("data-theme-icon", next);
 });
+onThemeChange((theme) => themeBtn.setAttribute("data-theme-icon", theme));
 
 refreshPanels();
 updateHistoryButtons();

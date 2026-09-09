@@ -10,13 +10,16 @@
       // switching to dark mode never flashes a light frame first.
       (function () {
         try {
-          var stored = localStorage.getItem("eugine-playground:theme");
+          // Shared with apps/docs' next-themes storage key ("theme") so both apps stay in sync.
+          var stored = localStorage.getItem("theme");
           var theme =
             stored === "light" || stored === "dark"
               ? stored
-              : matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light";
+              : stored === "system"
+                ? matchMedia("(prefers-color-scheme: dark)").matches
+                  ? "dark"
+                  : "light"
+                : "dark";
           document.documentElement.setAttribute("data-theme", theme);
         } catch (e) {}
       })();
