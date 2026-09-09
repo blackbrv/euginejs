@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/Eugine-logo.png" alt="Eugine logo" width="180" />
+</p>
+
 # Eugine
 
 **An extensible engine for building drag-and-drop visual editors and page builders.**
