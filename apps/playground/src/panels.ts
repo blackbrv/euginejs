@@ -16,6 +16,8 @@ import {
 /** Icon shown next to each design-panel group heading — purely decorative, keyed by DESIGN_GROUPS' names. */
 const DESIGN_GROUP_ICONS: Record<(typeof DESIGN_GROUPS)[number], Parameters<typeof icon>[0]> = {
   Layout: "layout",
+  Size: "resize",
+  Image: "image",
   Background: "droplet",
   Typography: "type",
   Border: "square",
@@ -416,6 +418,7 @@ function renderCustomStyleRow(
 }
 
 function fieldDependencyMet(node: EugineNode, field: DesignFieldDef): boolean {
+  if (field.onlyForTypes && !field.onlyForTypes.includes(node.type)) return false;
   if (!field.dependsOn) return true;
   const actual = currentStyle(node, field.dependsOn.property);
   const expected = field.dependsOn.value;

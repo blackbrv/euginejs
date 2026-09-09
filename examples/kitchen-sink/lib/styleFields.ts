@@ -14,7 +14,7 @@ export interface DesignFieldDef {
   /** A real CSS property name (kebab-case), applied via CSSStyleDeclaration.setProperty(). */
   property: string;
   label: string;
-  group: "Layout" | "Background" | "Typography" | "Border" | "Spacing" | "Effects" | "Animation";
+  group: "Layout" | "Size" | "Image" | "Background" | "Typography" | "Border" | "Spacing" | "Effects" | "Animation";
   control: DesignControl;
   options?: string[];
   placeholder?: string;
@@ -22,6 +22,8 @@ export interface DesignFieldDef {
   units?: string[];
   /** Only shown once `dependsOn.property`'s current value is one of `dependsOn.value` — e.g. flex options only once display:flex is chosen. */
   dependsOn?: DesignFieldDependency;
+  /** Only shown for these component types — e.g. object-fit only makes sense on an `image` node. Omit to show for every type. */
+  onlyForTypes?: string[];
 }
 
 /** Splits a CSS length like "16px" into its numeric amount and unit. Returns null for anything that isn't a single plain number + unit (multi-value shorthand, keywords, empty). */
@@ -118,6 +120,33 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     control: "grid-tracks",
     dependsOn: { property: "display", value: ["grid", "inline-grid"] },
   },
+  { property: "width", label: "Width", group: "Size", control: "length" },
+  { property: "height", label: "Height", group: "Size", control: "length" },
+  { property: "aspect-ratio", label: "Aspect ratio", group: "Size", control: "text", placeholder: "16 / 9" },
+  {
+    property: "object-fit",
+    label: "Object fit",
+    group: "Image",
+    control: "select",
+    options: ["fill", "contain", "cover", "none", "scale-down"],
+    onlyForTypes: ["image"],
+  },
+  {
+    property: "object-position",
+    label: "Object position",
+    group: "Image",
+    control: "text",
+    placeholder: "center",
+    onlyForTypes: ["image"],
+  },
+  {
+    property: "image-rendering",
+    label: "Rendering",
+    group: "Image",
+    control: "select",
+    options: ["auto", "pixelated", "crisp-edges", "smooth"],
+    onlyForTypes: ["image"],
+  },
   { property: "background-color", label: "Background", group: "Background", control: "color" },
   { property: "color", label: "Text color", group: "Typography", control: "color" },
   { property: "font-size", label: "Font size", group: "Typography", control: "length" },
@@ -159,7 +188,17 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
   { property: "animation", label: "Animation", group: "Animation", control: "text", placeholder: "fade-in 0.4s ease-in-out" },
 ];
 
-export const DESIGN_GROUPS = ["Layout", "Background", "Typography", "Border", "Spacing", "Effects", "Animation"] as const;
+export const DESIGN_GROUPS = [
+  "Layout",
+  "Size",
+  "Image",
+  "Background",
+  "Typography",
+  "Border",
+  "Spacing",
+  "Effects",
+  "Animation",
+] as const;
 
 const DESIGN_PROPERTY_SET = new Set(DESIGN_FIELDS.map((f) => f.property));
 
