@@ -1,7 +1,16 @@
 import { getNode, walk, type Editor, type EugineNode } from "eugine";
 import { icon } from "./icons";
 import { schemaFor } from "./schema";
-import { DEFAULT_LENGTH_UNITS, DESIGN_FIELDS, DESIGN_GROUPS, isCustomStyleProperty, parseLength, type DesignFieldDef } from "./styleFields";
+import {
+  DEFAULT_LENGTH_UNITS,
+  DESIGN_FIELDS,
+  DESIGN_GROUPS,
+  formatGridTrackCount,
+  isCustomStyleProperty,
+  parseGridTrackCount,
+  parseLength,
+  type DesignFieldDef,
+} from "./styleFields";
 
 /** Applies a style directly to the live canvas element, bypassing the editor/history entirely. */
 export type PreviewStyle = (id: string, property: string, value: string) => void;
@@ -295,6 +304,30 @@ function renderDesignField(container: HTMLElement, editor: Editor, node: EugineN
     });
 
     group.append(amount, unit);
+    row.appendChild(group);
+  } else if (field.control === "grid-tracks") {
+    const group = document.createElement("div");
+    group.className = "ks-grid-tracks-group";
+
+    const count = document.createElement("input");
+    count.type = "number";
+    count.min = "0";
+    count.step = "1";
+    count.placeholder = "Auto";
+    count.className = "ks-grid-tracks-count";
+    const parsedCount = parseGridTrackCount(value);
+    count.value = parsedCount > 0 ? String(parsedCount) : "";
+
+    const suffix = document.createElement("span");
+    suffix.className = "ks-grid-tracks-suffix";
+    suffix.textContent = "equal tracks";
+
+    count.addEventListener("change", () => {
+      const n = Math.max(0, Math.round(Number(count.value) || 0));
+      setStyle(editor, node, field.property, formatGridTrackCount(n));
+    });
+
+    group.append(count, suffix);
     row.appendChild(group);
   } else {
     const input = document.createElement("input");

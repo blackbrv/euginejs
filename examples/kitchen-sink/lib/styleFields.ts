@@ -1,6 +1,6 @@
 import type { NodeStyles } from "eugine";
 
-export type DesignControl = "color" | "text" | "select" | "length";
+export type DesignControl = "color" | "text" | "select" | "length" | "grid-tracks";
 
 export interface DesignFieldDependency {
   property: string;
@@ -29,6 +29,30 @@ export function parseLength(value: string): { amount: string; unit: string } | n
   const match = /^(-?\d*\.?\d+)([a-z%]*)$/i.exec(value.trim());
   if (!match) return null;
   return { amount: match[1]!, unit: match[2]! };
+}
+
+/**
+ * Reads a grid-template-columns/rows value back as a plain track count, for
+ * the simplified "N equal tracks" control — normal users think in "how many
+ * columns", not `fr` units. `repeat(N, 1fr)` (what this control itself
+ * writes) round-trips exactly; anything hand-authored (e.g. "200px 1fr 1fr")
+ * is read as its whitespace-separated token count on a best-effort basis, so
+ * existing documents still show a sensible number instead of blowing up.
+ * Empty/auto reads as 0.
+ */
+export function parseGridTrackCount(value: string): number {
+  const trimmed = value.trim();
+  if (!trimmed) return 0;
+  const repeat = /^repeat\(\s*(\d+)\s*,\s*1fr\s*\)$/i.exec(trimmed);
+  if (repeat) return Number(repeat[1]);
+  return trimmed.split(/\s+/).length;
+}
+
+/** Formats a track count back into CSS: equal `1fr` tracks via `repeat()`, or "" (auto) for 0. */
+export function formatGridTrackCount(count: number): string {
+  if (count <= 0) return "";
+  if (count === 1) return "1fr";
+  return `repeat(${count}, 1fr)`;
 }
 
 /**
@@ -84,8 +108,14 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     property: "grid-template-columns",
     label: "Columns",
     group: "Layout",
-    control: "text",
-    placeholder: "1fr 1fr 1fr",
+    control: "grid-tracks",
+    dependsOn: { property: "display", value: ["grid", "inline-grid"] },
+  },
+  {
+    property: "grid-template-rows",
+    label: "Rows",
+    group: "Layout",
+    control: "grid-tracks",
     dependsOn: { property: "display", value: ["grid", "inline-grid"] },
   },
   { property: "background-color", label: "Background", group: "Background", control: "color" },

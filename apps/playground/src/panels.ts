@@ -2,7 +2,16 @@ import { getAncestors, getNode, type Editor, type EugineNode } from "eugine";
 import { CARET_ICON, componentIcon } from "./componentIcons.js";
 import { icon } from "./icons.js";
 import { schemaFor } from "./schema.js";
-import { DEFAULT_LENGTH_UNITS, DESIGN_FIELDS, DESIGN_GROUPS, isCustomStyleProperty, parseLength, type DesignFieldDef } from "./styleFields.js";
+import {
+  DEFAULT_LENGTH_UNITS,
+  DESIGN_FIELDS,
+  DESIGN_GROUPS,
+  formatGridTrackCount,
+  isCustomStyleProperty,
+  parseGridTrackCount,
+  parseLength,
+  type DesignFieldDef,
+} from "./styleFields.js";
 
 /** Icon shown next to each design-panel group heading — purely decorative, keyed by DESIGN_GROUPS' names. */
 const DESIGN_GROUP_ICONS: Record<(typeof DESIGN_GROUPS)[number], Parameters<typeof icon>[0]> = {
@@ -321,6 +330,30 @@ function renderDesignField(
     });
 
     group.append(amount, unit);
+    row.appendChild(group);
+  } else if (field.control === "grid-tracks") {
+    const group = document.createElement("div");
+    group.className = "eb-grid-tracks-group";
+
+    const count = document.createElement("input");
+    count.type = "number";
+    count.min = "0";
+    count.step = "1";
+    count.placeholder = "Auto";
+    count.className = "eb-grid-tracks-count";
+    const parsedCount = parseGridTrackCount(value);
+    count.value = parsedCount > 0 ? String(parsedCount) : "";
+
+    const suffix = document.createElement("span");
+    suffix.className = "eb-grid-tracks-suffix";
+    suffix.textContent = "equal tracks";
+
+    count.addEventListener("change", () => {
+      const n = Math.max(0, Math.round(Number(count.value) || 0));
+      setStyle(editor, node, field.property, formatGridTrackCount(n));
+    });
+
+    group.append(count, suffix);
     row.appendChild(group);
   } else {
     const input = document.createElement("input");
