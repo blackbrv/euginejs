@@ -211,7 +211,7 @@ div[id] {
   justify-content: center;
   flex-direction: column;
   gap: 1.25rem;
-  background: #020202;
+  background: #000;
   transition: opacity 0.4s ease;
 }
 
@@ -223,14 +223,6 @@ div[id] {
 /* The logo mark pulses while loading */
 .nexus-preloader .nexus-preloader-logo {
   animation: nexus-logo-breathe 1.2s ease-in-out infinite;
-}
-
-.nexus-preloader .nexus-preloader-caption {
-  font-family: var(--nexus-mono, "JetBrains Mono", ui-monospace, monospace);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #a1a1aa;
 }
 
 @keyframes nexus-logo-breathe {
@@ -252,7 +244,7 @@ div[id] {
   inset: 0;
   z-index: 9998;
   pointer-events: none;
-  background: #020202;
+  background: #000;
   -webkit-mask-image: radial-gradient(
     circle at 50% 50%,
     transparent 0 56px,

@@ -148,7 +148,7 @@ export function Nav({ onSearch }: { onSearch: () => void }) {
       >
         <a href="#hero" className="group flex items-center gap-3">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-fd-muted transition-colors group-hover:bg-gradient-to-tr group-hover:from-indigo-600/20 group-hover:to-purple-600/20">
-            <Layers className="h-4 w-4" />
+            <img src="/eugine-logo.png" alt="" className="h-7 w-7" />
           </span>
           <span className="font-semibold tracking-tight">eugine</span>
         </a>
@@ -873,7 +873,7 @@ export function Footer() {
           <div className="md:col-span-2">
             <a href="#hero" className="flex items-center gap-3">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-fd-muted">
-                <Layers className="h-4 w-4" />
+                <img src="/eugine-logo.png" alt="" className="h-7 w-7" />
               </span>
               <span className="font-semibold tracking-tight">eugine</span>
             </a>

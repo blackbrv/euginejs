@@ -4,7 +4,12 @@ import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: "Eugine",
+      title: (
+        <>
+          <img src="/eugine-logo.png" alt="" className="h-6 w-6" />
+          Eugine
+        </>
+      ),
     },
     githubUrl: "https://github.com/blackbrv/euginejs",
     // Renders as an icon link in the sidebar footer, alongside the GitHub
