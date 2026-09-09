@@ -91,3 +91,73 @@ export function autosavePlugin(save: (d: EugineDocument) => Promise<void>): Eugi
   };
 }
 ```
+
+## Encrypting documents
+
+Eugine's document model is plain, unencrypted JSON by design — see [Security](/docs/advanced/security)
+for why. Confidentiality of what you *persist* is a `StorageAdapter` concern, not something the
+engine handles: encrypt inside `save()`, decrypt inside `load()`, and the editor itself never
+touches ciphertext.
+
+<Callout type="warn">
+  Compression and encoding are not encryption. Running a document through `lzutf8`, gzip, or
+  Base64 makes it smaller or differently shaped — it does not stop anyone who has the bytes from
+  reading them, since reversing that needs no secret. If the goal is to keep your backend's
+  operators, or an attacker with database access, from reading project data, only a real cipher
+  provides that.
+</Callout>
+
+Use an established primitive, never a custom scheme. The Web Crypto API ships in every browser and
+in Node (`globalThis.crypto.subtle`), so AES-GCM needs no dependency:
+
+```ts
+async function encryptDocument(document: SerializedDocument, key: CryptoKey) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const bytes = new TextEncoder().encode(JSON.stringify(document));
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, bytes);
+  return { iv: toBase64(iv), ciphertext: toBase64(ciphertext) };
+}
+
+async function decryptDocument(payload: { iv: string; ciphertext: string }, key: CryptoKey): Promise<SerializedDocument> {
+  const bytes = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: fromBase64(payload.iv) },
+    key,
+    fromBase64(payload.ciphertext),
+  );
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+```
+
+Wire it into the same adapter shown above — encrypt right before the `fetch`, decrypt right after:
+
+```ts
+class EncryptedApiStorageAdapter implements StorageAdapter {
+  constructor(private key: CryptoKey) {}
+
+  async save(document: SerializedDocument, options: SaveOptions = {}): Promise<SaveResult> {
+    const payload = await encryptDocument(document, this.key);
+    const res = await fetch("/api/document", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, baseRevision: options.baseRevision }),
+    });
+    if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+    return { ok: true };
+  }
+
+  async load(): Promise<SerializedDocument | undefined> {
+    const res = await fetch("/api/document");
+    if (!res.ok) return undefined;
+    return decryptDocument(await res.json(), this.key);
+  }
+}
+```
+
+Key management is entirely yours — Eugine has no opinion on where `key` comes from (derived from a
+user password, issued by a KMS, held only client-side, ...). That choice is what actually decides
+who can read the data: a key your backend never sees means your backend's operators genuinely
+cannot read project JSON, but you're also on the hook for recovery — there is no way to decrypt
+without it, by design.
+
+If you also want smaller payloads, compress before you encrypt (`lzutf8`, gzip, ...), never after —
+encrypted bytes are indistinguishable from random and don't compress.

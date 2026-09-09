@@ -75,4 +75,12 @@ object through wholesale.
 `editor.use()` runs plugin code with your application's privileges. It is not a sandbox. Never
 load a plugin named or supplied by document content.
 
+## Confidentiality of stored documents
+
+Everything above is about *execution* safety — keeping document JSON from being treated as code.
+It says nothing about who can *read* that JSON once it reaches your backend. Eugine has no opinion
+on that; if you need it, encrypt inside your own `StorageAdapter`. See
+[Storage: encrypting documents](/docs/guides/storage#encrypting-documents) — and note that
+compression/encoding (Base64, gzip, `lzutf8`, ...) is not encryption and provides no confidentiality.
+
 See the [Error Reference](/docs/advanced/errors) for what each failure mode above actually throws.
