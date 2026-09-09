@@ -1,4 +1,5 @@
-import { getAncestors, getNode, type Editor, type EugineNode } from "eugine";
+import { getAncestors, getNode, getParent, isAncestor, type Editor, type EugineNode } from "eugine";
+import { getDropPosition, type DropPosition } from "eugine/renderer";
 import { CARET_ICON, componentIcon } from "./componentIcons.js";
 import { icon } from "./icons.js";
 import { schemaFor } from "./schema.js";
@@ -44,6 +45,115 @@ export type PreviewStyle = (id: string, property: string, value: string) => void
  * collapsing a row in the Layers panel doesn't change your page.
  */
 const collapsedIds = new Set<string>();
+
+/** Id of the layer row currently being dragged, or null when no drag is in progress. */
+let draggingId: string | null = null;
+/** The row (and drop edge) currently showing a drop marker, so the next dragover can clear it. */
+let dropMarkerRow: HTMLElement | null = null;
+let dropMarkerPosition: DropPosition | null = null;
+
+function clearDropMarker(): void {
+  dropMarkerRow?.classList.remove("eb-layer-drop-before", "eb-layer-drop-after", "eb-layer-drop-inside");
+  dropMarkerRow = null;
+  dropMarkerPosition = null;
+}
+
+function setDropMarker(row: HTMLElement, position: DropPosition): void {
+  if (dropMarkerRow && dropMarkerRow !== row) clearDropMarker();
+  row.classList.remove("eb-layer-drop-before", "eb-layer-drop-after", "eb-layer-drop-inside");
+  row.classList.add(`eb-layer-drop-${position}`);
+  dropMarkerRow = row;
+  dropMarkerPosition = position;
+}
+
+// A drop can be cancelled outside any row (released off-window, Escape, etc.);
+// `dragend` always fires on the drag source regardless, so it's the one place
+// safe to unconditionally clear leftover marker state.
+document.addEventListener("dragend", () => {
+  clearDropMarker();
+  draggingId = null;
+});
+
+/** The Photoshop-style display name for a layer row: its custom name if renamed, else its type. */
+function layerName(node: EugineNode): string {
+  const name = node.metadata?.name;
+  return typeof name === "string" && name.trim() ? name : node.type;
+}
+
+/** Whether dropping `draggedId` at `position` relative to `targetId` would be a legal move. */
+function canDropLayer(editor: Editor, draggedId: string, targetId: string, position: DropPosition): boolean {
+  if (draggedId === targetId) return false;
+  const document_ = editor.getDocument();
+  const draggedNode = getNode(document_, draggedId);
+  if (draggedNode.locked || isAncestor(document_, draggedId, targetId)) return false;
+
+  const parent = position === "inside" ? getNode(document_, targetId) : getParent(document_, targetId);
+  if (!parent) return false; // "before"/"after" on the root: it has no parent to reorder within
+
+  const currentChildCount = parent.id === draggedNode.parent ? parent.children.length - 1 : parent.children.length;
+  return editor.registry.canAcceptChild({ parentType: parent.type, childType: draggedNode.type, currentChildCount });
+}
+
+/** Where `draggedId` should land — assumes canDropLayer() already passed. */
+function resolveDrop(editor: Editor, draggedId: string, targetId: string, position: DropPosition): { parentId: string; index?: number } {
+  if (position === "inside") return { parentId: targetId };
+  const parent = getParent(editor.getDocument(), targetId)!;
+  const siblings = parent.children.filter((id) => id !== draggedId);
+  const at = siblings.indexOf(targetId);
+  return { parentId: parent.id, index: position === "after" ? at + 1 : at };
+}
+
+/**
+ * Double-click-to-rename, Photoshop-style: turns `nameEl` into an editable
+ * span, committing the new name (or clearing back to the type label, if
+ * blanked) on blur/Enter and discarding the edit on Escape. Mirrors
+ * canvas.ts's makeEditableText — same interaction, same reason for toggling
+ * `row.draggable` off mid-edit (so selecting text doesn't start a native drag).
+ */
+function makeLayerNameEditable(nameEl: HTMLElement, node: EugineNode, editor: Editor, row: HTMLElement): void {
+  const stopEditing = (commit: boolean) => {
+    if (nameEl.contentEditable !== "true") return;
+    nameEl.contentEditable = "false";
+    row.draggable = !node.locked && node.id !== editor.getDocument().rootId;
+    nameEl.classList.remove("eb-layer-name-editing");
+    if (commit) {
+      const value = (nameEl.textContent ?? "").trim();
+      if (value !== layerName(node)) {
+        const metadata = { ...node.metadata };
+        if (value) metadata.name = value;
+        else delete metadata.name;
+        editor.replace(node.id, { ...node, metadata });
+        return;
+      }
+    }
+    nameEl.textContent = layerName(node);
+  };
+
+  nameEl.addEventListener("dblclick", (event) => {
+    event.stopPropagation();
+    nameEl.contentEditable = "true";
+    row.draggable = false;
+    nameEl.classList.add("eb-layer-name-editing");
+    nameEl.focus();
+    const range = document.createRange();
+    range.selectNodeContents(nameEl);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+  });
+
+  nameEl.addEventListener("blur", () => stopEditing(true));
+  nameEl.addEventListener("keydown", (event) => {
+    if (nameEl.contentEditable !== "true") return;
+    if (event.key === "Enter") {
+      event.preventDefault();
+      nameEl.blur();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      stopEditing(false);
+      nameEl.blur();
+    }
+  });
+}
 
 export function renderLayers(
   editor: Editor,
@@ -110,10 +220,63 @@ export function renderLayers(
 
     const label = document.createElement("span");
     label.className = "eb-layer-label";
-    label.textContent = node.type;
+    label.textContent = layerName(node);
+    label.title = node.metadata?.name ? `${layerName(node)} (${node.type})` : node.type;
     main.appendChild(label);
+    makeLayerNameEditable(label, node, editor, item);
 
     item.appendChild(main);
+
+    const isRoot = node.id === document_.rootId;
+    item.draggable = !isRoot && !node.locked;
+    item.addEventListener("dragstart", (event) => {
+      event.stopPropagation();
+      draggingId = node.id;
+      event.dataTransfer?.setData("text/plain", node.id);
+      event.dataTransfer!.effectAllowed = "move";
+      item.classList.add("eb-layer-dragging");
+    });
+    item.addEventListener("dragend", () => item.classList.remove("eb-layer-dragging"));
+
+    item.addEventListener("dragover", (event) => {
+      if (!draggingId) return;
+      const acceptsChildren = editor.registry.tryGet(node.type)?.accepts !== "none";
+      const position: DropPosition = isRoot
+        ? "inside"
+        : getDropPosition(
+            item.getBoundingClientRect(),
+            { clientX: event.clientX, clientY: event.clientY },
+            { insideRatio: acceptsChildren ? 0.5 : 0 },
+          );
+
+      if (!canDropLayer(editor, draggingId, node.id, position)) {
+        if (dropMarkerRow === item) clearDropMarker();
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer!.dropEffect = "move";
+      setDropMarker(item, position);
+    });
+
+    item.addEventListener("dragleave", (event) => {
+      if (event.relatedTarget instanceof Node && item.contains(event.relatedTarget)) return;
+      if (dropMarkerRow === item) clearDropMarker();
+    });
+
+    item.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const sourceId = draggingId;
+      const position = dropMarkerRow === item ? dropMarkerPosition : null;
+      clearDropMarker();
+      draggingId = null;
+      if (!sourceId || !position) return;
+      try {
+        const { parentId, index } = resolveDrop(editor, sourceId, node.id, position);
+        editor.move(sourceId, parentId, index);
+      } catch (error) {
+        console.warn("[playground] layer move rejected:", error);
+      }
+    });
 
     if (node.id !== document_.rootId) {
       const actions = document.createElement("span");

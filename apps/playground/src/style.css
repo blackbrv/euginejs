@@ -522,6 +522,32 @@ button {
   white-space: nowrap;
 }
 
+.eb-layer-name-editing {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+  white-space: normal;
+  cursor: text;
+}
+
+.eb-layer-dragging {
+  opacity: 0.5;
+}
+
+.eb-layer-drop-before {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+
+.eb-layer-drop-after {
+  box-shadow: inset 0 -2px 0 0 var(--accent);
+}
+
+.eb-layer-drop-inside {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
 .eb-layer-actions {
   display: flex;
   flex-shrink: 0;
