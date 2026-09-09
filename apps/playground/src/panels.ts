@@ -68,11 +68,20 @@ function setDropMarker(row: HTMLElement, position: DropPosition): void {
 
 // A drop can be cancelled outside any row (released off-window, Escape, etc.);
 // `dragend` always fires on the drag source regardless, so it's the one place
-// safe to unconditionally clear leftover marker state.
-document.addEventListener("dragend", () => {
-  clearDropMarker();
-  draggingId = null;
-});
+// safe to unconditionally clear leftover marker state. Bound lazily from
+// renderLayers() rather than at module load — see the identical fix in
+// examples/kitchen-sink/lib/panels.ts for why (server-side prerendering has
+// no `document`; playground doesn't prerender today, but this file otherwise
+// mirrors that one exactly and shouldn't gain an SSR trap by accident).
+let dragCleanupBound = false;
+function ensureDragCleanupBound(): void {
+  if (dragCleanupBound) return;
+  dragCleanupBound = true;
+  document.addEventListener("dragend", () => {
+    clearDropMarker();
+    draggingId = null;
+  });
+}
 
 /** The Photoshop-style display name for a layer row: its custom name if renamed, else its type. */
 function layerName(node: EugineNode): string {
@@ -161,6 +170,7 @@ export function renderLayers(
   onSelect: (id: string, additive: boolean) => void,
   onContextMenu: (id: string, clientX: number, clientY: number) => void,
 ): void {
+  ensureDragCleanupBound();
   container.innerHTML = "";
   const list = document.createElement("ul");
   list.className = "eb-layers";
