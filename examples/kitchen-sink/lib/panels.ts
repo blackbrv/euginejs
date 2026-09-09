@@ -59,10 +59,18 @@ function setDropMarker(row: HTMLElement, position: DropPosition): void {
 
 // dragend always fires on the drag source even when the drop was cancelled
 // (released off-window, Escape, ...), so it's the safe place to clear state.
-document.addEventListener("dragend", () => {
-  clearDropMarker();
-  draggingId = null;
-});
+// Bound lazily from renderLayers() rather than at module load: this file is
+// imported during Next.js's server-side prerender of the page, where
+// `document` doesn't exist.
+let dragCleanupBound = false;
+function ensureDragCleanupBound(): void {
+  if (dragCleanupBound) return;
+  dragCleanupBound = true;
+  document.addEventListener("dragend", () => {
+    clearDropMarker();
+    draggingId = null;
+  });
+}
 
 /** The Photoshop-style display name for a layer row: its custom name if renamed, else its type. */
 function layerName(node: EugineNode): string {
@@ -150,6 +158,7 @@ export function renderLayers(
   onSelect: (id: string, additive: boolean) => void,
   onContextMenu: (id: string, clientX: number, clientY: number) => void,
 ): void {
+  ensureDragCleanupBound();
   container.innerHTML = "";
   const list = document.createElement("ul");
   list.className = "ks-layers";
