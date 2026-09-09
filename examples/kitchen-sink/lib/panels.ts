@@ -31,10 +31,11 @@ const DESIGN_GROUP_ICONS: Record<(typeof DESIGN_GROUPS)[number], Parameters<type
 /**
  * Which design-panel groups are collapsed, by group name. Module-level (a
  * view preference, not document state) — mirrors playground's
- * `collapsedDesignGroups`. Starts empty (everything expanded) except
- * "Custom CSS", the group least often touched.
+ * `collapsedDesignGroups`. Starts with every group collapsed, so selecting a
+ * node doesn't dump its entire style surface into view at once — the user
+ * opens only the group they actually want to touch.
  */
-const collapsedDesignGroups = new Set<string>(["Custom CSS"]);
+const collapsedDesignGroups = new Set<string>([...DESIGN_GROUPS, "Custom CSS"]);
 
 export function renderLayers(
   editor: Editor,

@@ -29,10 +29,11 @@ const DESIGN_GROUP_ICONS: Record<(typeof DESIGN_GROUPS)[number], Parameters<type
 /**
  * Which design-panel groups are collapsed, by group name. Module-level (a
  * view preference, not document state) — mirrors `collapsedIds` above for
- * the layers tree. Starts empty (everything expanded) except "Custom CSS",
- * which is the group least often touched.
+ * the layers tree. Starts with every group collapsed, so selecting a node
+ * doesn't dump its entire style surface into view at once — the user opens
+ * only the group they actually want to touch.
  */
-const collapsedDesignGroups = new Set<string>(["Custom CSS"]);
+const collapsedDesignGroups = new Set<string>([...DESIGN_GROUPS, "Custom CSS"]);
 
 /** Applies a style directly to the live canvas element, bypassing the editor/history entirely. */
 export type PreviewStyle = (id: string, property: string, value: string) => void;
