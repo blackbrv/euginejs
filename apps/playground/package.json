@@ -8,13 +8,16 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "eugine": "0.1.2"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.4"
   }
 }

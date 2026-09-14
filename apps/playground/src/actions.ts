@@ -46,5 +46,5 @@ export function deleteSelection(editor: Editor, ids: string[]): void {
     for (const id of targets) {
       if (editor.getDocument().nodes[id]) editor.remove(id);
     }
-  });
+  }, "delete");
 }

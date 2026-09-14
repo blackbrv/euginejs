@@ -3,6 +3,7 @@ import { mountCanvas, registerPaletteDrag, PALETTE_ITEMS } from "./canvas.js";
 import { componentIcon } from "./componentIcons.js";
 import { showContextMenu } from "./contextMenu.js";
 import { openExportDialog } from "./exportDialog.js";
+import { initHistoryPanel, resetHistoryPanel } from "./history.js";
 import { icon } from "./icons.js";
 import { initKeyboardShortcuts } from "./keyboard.js";
 import { renderInspector, renderLayers } from "./panels.js";
@@ -51,6 +52,8 @@ app.innerHTML = `
         <div id="palette-list"></div>
         <h3>Layers</h3>
         <div id="layers-list"></div>
+        <h3>History</h3>
+        <div id="history-list"></div>
       </aside>
       <main class="eb-canvas-wrapper">
         <div id="canvas" class="eb-canvas"></div>
@@ -65,6 +68,7 @@ editor.storage.use(new LocalStorageAdapter());
 
 const canvasEl = document.getElementById("canvas") as HTMLElement;
 const layersEl = document.getElementById("layers-list") as HTMLElement;
+const historyEl = document.getElementById("history-list") as HTMLElement;
 const inspectorEl = document.getElementById("inspector") as HTMLElement;
 const paletteEl = document.getElementById("palette-list") as HTMLElement;
 
@@ -92,7 +96,6 @@ function refreshPanels(): void {
 editor.events.on("document.change", () => {
   canvas.refresh();
   refreshPanels();
-  updateHistoryButtons();
 });
 editor.selection.onSelectionChange(({ ids }) => {
   refreshPanels();
@@ -140,6 +143,10 @@ document.getElementById("btn-load")!.addEventListener("click", async () => {
     return;
   }
   editor.load(saved);
+  // load() clears History without emitting a history event, so the panel and
+  // the toolbar buttons have to be brought back in line by hand.
+  resetHistoryPanel(editor, historyEl);
+  updateHistoryButtons();
   showToast("Loaded from local storage", "success");
 });
 
@@ -157,6 +164,7 @@ onThemeChange((theme) => themeBtn.setAttribute("data-theme-icon", theme));
 
 refreshPanels();
 updateHistoryButtons();
+initHistoryPanel(editor, historyEl, updateHistoryButtons);
 
 // Exposed for manual/automated smoke-testing in a real browser.
 (window as unknown as { __eugine: unknown }).__eugine = { editor };

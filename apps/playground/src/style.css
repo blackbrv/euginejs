@@ -1290,3 +1290,133 @@ button {
   color: var(--text-faint);
   cursor: default;
 }
+
+/* ---------- History ---------- */
+
+.eb-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.eb-history-empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.eb-history-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition:
+    background-color 120ms var(--ease),
+    color 120ms var(--ease),
+    opacity 120ms var(--ease);
+}
+
+.eb-history-live {
+  cursor: pointer;
+}
+
+.eb-history-live:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.eb-history-live:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* The dot column doubles as the timeline spine: a hollow ring per change,
+   filled on the one the document is currently sitting at. */
+.eb-history-dot {
+  position: relative;
+  justify-self: center;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--text-faint);
+  border-radius: 50%;
+}
+
+.eb-history-row + .eb-history-row .eb-history-dot::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 1px;
+  height: 8px;
+  transform: translateX(-50%);
+  background: var(--border);
+}
+
+.eb-history-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eb-history-time {
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.eb-history-current {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.eb-history-current .eb-history-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.eb-history-current .eb-history-time {
+  color: var(--accent);
+}
+
+/* Undone changes stay listed — that's the point of the panel — but read as
+   "ahead of where you are", ready to be redone. */
+.eb-history-undone {
+  opacity: 0.45;
+}
+
+.eb-history-undone .eb-history-label {
+  text-decoration: line-through;
+}
+
+/* Restored from localStorage: a log of a previous session. Its commands are
+   gone, so these rows are not clickable. */
+.eb-history-past {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.eb-history-divider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.eb-history-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
