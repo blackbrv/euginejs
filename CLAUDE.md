@@ -85,7 +85,8 @@ Three pieces are load-bearing and easy to break:
 - **The playground SPA ships inside the docs deployment.** `npm run build:docs` builds
   `apps/playground`, then `apps/docs/scripts/copy-playground.mjs` copies its `dist/` into
   `apps/docs/public/playground/` (gitignored), where Next serves it at `/playground` (via a rewrite
-  in `apps/docs/next.config.mjs`). `apps/playground/vite.config.ts` sets `base: "/playground/"`
+  in `apps/docs/next.config.mjs`). `npm run dev -w docs` refreshes that copy once via its `predev`
+  hook; it does not watch — restart it, or use `npm run dev -w playground`, while editing the playground. `apps/playground/vite.config.ts` sets `base: "/playground/"`
   for production builds (dev stays at root), so if you change the playground's build output shape
   or base there, verify `/playground` still loads with working asset URLs on the deployed site.
 

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "description": "The Eugine documentation site: guides, concepts, a generated API reference, and live in-page editors built on the library itself.",
   "scripts": {
+    "predev": "npm run build -w playground && node scripts/copy-playground.mjs",
     "dev": "next dev -p 3003",
     "prebuild": "npm run api",
     "build": "next build",
