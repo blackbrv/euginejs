@@ -84,7 +84,7 @@ function ensureDragCleanupBound(): void {
 }
 
 /** The Photoshop-style display name for a layer row: its custom name if renamed, else its type. */
-function layerName(node: EugineNode): string {
+export function layerName(node: EugineNode): string {
   const name = node.metadata?.name;
   return typeof name === "string" && name.trim() ? name : node.type;
 }

@@ -70,6 +70,23 @@ describe("history panel", () => {
     expect(rows(container).map((r) => r.undone)).toEqual([false, false, false]);
   });
 
+  it("details each change with what it did, old value included", () => {
+    const { editor, container } = setup();
+    const root = editor.getDocument().rootId;
+    const id = editor.insert("heading", root);
+    editor.updateProps(id, { content: "Hello" });
+    editor.remove(id);
+
+    const details = [...container.querySelectorAll(".eb-history-live")].map((row) =>
+      [...row.querySelectorAll(".eb-history-details li")].map((li) => li.textContent),
+    );
+    expect(details).toEqual([
+      ["Added heading to root"],
+      ['heading · content: "A bold heading" → "Hello"'],
+      ["Removed heading from root"],
+    ]);
+  });
+
   it("persists the log and replays it as inert past-session rows after a reload", async () => {
     const { editor } = setup();
     const root = editor.getDocument().rootId;

@@ -1,4 +1,5 @@
-import type { Editor, HistoryEntry } from "eugine";
+import type { Editor, EugineDocument, EugineNode, EugineOperation, HistoryEntry } from "eugine";
+import { layerName } from "./panels.js";
 
 /**
  * The History panel: a chronological list of every change made to the page,
@@ -13,6 +14,12 @@ import type { Editor, HistoryEntry } from "eugine";
  * earlier session render dimmed and inert above a divider. Restoring real
  * cross-reload undo is what `@euginejs/versioning` (document snapshots) is
  * for — deliberately a different concept from in-session undo/redo.
+ *
+ * Each row also lists what the change actually did ("Heading · content:
+ * "Hi" → "Hello""). HistoryEntry deliberately carries only names, so those
+ * details come from `history.onCommit()` — the same serializable
+ * `EugineOperation[]` a collaboration transport would send — read against
+ * the document as it was before and after the transaction.
  */
 
 const STORAGE_KEY = "eugine-playground:history";
@@ -26,6 +33,8 @@ interface SavedEntry {
   label: string | undefined;
   commandNames: string[];
   timestamp: number;
+  /** Absent in logs saved by older builds of this app. */
+  details?: string[];
 }
 
 interface SavedHistory {
@@ -54,6 +63,81 @@ function describe(entry: Pick<HistoryEntry, "label" | "commandNames">): string {
   if (entry.label) return entry.label[0]!.toUpperCase() + entry.label.slice(1);
   const names = [...new Set(entry.commandNames)].map((name) => COMMAND_LABELS[name] ?? name);
   return names.join(" + ") || "Change";
+}
+
+/** A value as it reads in a detail line: strings quoted, everything clipped short. */
+function show(value: unknown): string {
+  if (value === undefined) return "(none)";
+  const text = typeof value === "string" ? `"${value}"` : JSON.stringify(value);
+  return text.length > 40 ? `${text.slice(0, 39)}…` : text;
+}
+
+/** One "key: old → new" line per key that differs between two props/styles maps. */
+function diffLines(prefix: string, before: Record<string, unknown> = {}, after: Record<string, unknown> = {}): string[] {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  return [...keys]
+    .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
+    .map((key) => `${prefix}${key}: ${show(before[key])} → ${show(after[key])}`);
+}
+
+/** Everything that differs on one node — a name (layer rename), content props, or styles. */
+function nodeChanges(before: EugineNode | undefined, after: EugineNode | undefined): string[] {
+  if (!before || !after) return [];
+  const name = layerName(after);
+  const renamed = layerName(before) !== name ? [`Renamed "${layerName(before)}" → "${name}"`] : [];
+  return [
+    ...renamed,
+    ...diffLines(`${name} · `, before.props, after.props),
+    ...diffLines(`${name} · style `, before.styles, after.styles),
+  ];
+}
+
+function nameOf(node: EugineNode | undefined): string {
+  return node ? layerName(node) : "(removed node)";
+}
+
+/**
+ * Human-readable lines for one operation. Diffs the node itself rather than
+ * the operation's patch so the line can show the old value too, which the
+ * operation (only ever the new state) doesn't carry.
+ */
+function describeOperation(op: EugineOperation, before: EugineDocument, after: EugineDocument): string[] {
+  switch (op.type) {
+    case "insert":
+      return [`Added ${nameOf(op.node)} to ${nameOf(after.nodes[op.parentId])}`];
+    case "attach": {
+      const nested = Object.keys(op.nodes).length - 1;
+      return [`Added ${nameOf(op.nodes[op.rootId])}${nested ? ` (+${nested} nested)` : ""} to ${nameOf(after.nodes[op.parentId])}`];
+    }
+    case "remove": {
+      const node = before.nodes[op.id];
+      return [`Removed ${nameOf(node)} from ${nameOf(node?.parent ? before.nodes[node.parent] : undefined)}`];
+    }
+    case "move": {
+      const from = before.nodes[before.nodes[op.id]?.parent ?? ""];
+      const to = after.nodes[op.parentId];
+      const name = nameOf(after.nodes[op.id]);
+      if (from?.id === to?.id) {
+        const position = (node: EugineNode | undefined) => (node?.children.indexOf(op.id) ?? -1) + 1;
+        return [`Moved ${name} within ${nameOf(to)}: position ${position(from)} → ${position(to)}`];
+      }
+      return [`Moved ${name} from ${nameOf(from)} to ${nameOf(to)}`];
+    }
+    case "setProps":
+    case "setStyles":
+    case "replace":
+      return nodeChanges(before.nodes[op.id], after.nodes[op.id]);
+    case "reorder":
+      return [`Reordered the children of ${nameOf(after.nodes[op.parentId])}`];
+    case "wrap":
+      return [`Wrapped ${nameOf(after.nodes[op.id])} in a ${op.wrapperType}`];
+    case "unwrap":
+      return [`Unwrapped ${nameOf(before.nodes[op.id])}`];
+  }
+}
+
+function describeTransaction(operations: readonly EugineOperation[], before: EugineDocument, after: EugineDocument): string[] {
+  return [...new Set(operations.flatMap((op) => describeOperation(op, before, after)))];
 }
 
 function formatTime(timestamp: number): string {
@@ -96,6 +180,7 @@ function persist(editor: Editor): void {
       label: entry.label,
       commandNames: [...entry.commandNames],
       timestamp: entry.timestamp,
+      details: details.get(entry.id),
     })),
     applied: Math.max(0, applied - dropped),
   };
@@ -105,6 +190,18 @@ function persist(editor: Editor): void {
 /** The log as it stood when the page last unloaded — read once, never re-read. */
 let previousSession = loadPersisted();
 
+/** Detail lines per HistoryEntry.id for this session, filled from history.onCommit(). */
+let details = new Map<string, string[]>();
+
+/**
+ * The document as of the last settled history move — i.e. what the next
+ * committed transaction started from. ponytail: assumes every document change
+ * goes through History (true in this app); an `applyRemote()` edit would make
+ * the next entry's details include the remote change too. Track
+ * `document.change` per origin if a collaboration demo lands here.
+ */
+let settled: EugineDocument | undefined;
+
 /**
  * Drops the whole log, past sessions included. For `editor.load()`, which
  * clears History outright (in-session undo is ephemeral by design) — keeping
@@ -113,10 +210,12 @@ let previousSession = loadPersisted();
 export function resetHistoryPanel(editor: Editor, container: HTMLElement): void {
   window.localStorage.removeItem(STORAGE_KEY);
   previousSession = undefined;
+  details = new Map();
+  settled = editor.getDocument();
   renderHistory(editor, container);
 }
 
-type RenderableEntry = Pick<HistoryEntry, "label" | "commandNames" | "timestamp">;
+type RenderableEntry = Pick<HistoryEntry, "label" | "commandNames" | "timestamp"> & { details?: readonly string[] };
 
 function row(entry: RenderableEntry, applied: boolean, extraClass = ""): HTMLElement {
   const li = document.createElement("li");
@@ -127,6 +226,16 @@ function row(entry: RenderableEntry, applied: boolean, extraClass = ""): HTMLEle
     <time class="eb-history-time">${formatTime(entry.timestamp)}</time>
   `;
   li.querySelector(".eb-history-label")!.textContent = describe(entry);
+  if (entry.details?.length) {
+    const list = document.createElement("ul");
+    list.className = "eb-history-details";
+    for (const line of entry.details) {
+      const item = document.createElement("li");
+      item.textContent = line; // document content — never innerHTML
+      list.appendChild(item);
+    }
+    li.appendChild(list);
+  }
   return li;
 }
 
@@ -170,7 +279,7 @@ export function renderHistory(editor: Editor, container: HTMLElement): void {
 
   for (const [i, entry] of entries.entries()) {
     const isApplied = i < applied;
-    const li = row(entry, isApplied);
+    const li = row({ ...entry, details: details.get(entry.id) }, isApplied);
     li.classList.add("eb-history-live");
     if (i === applied - 1) li.classList.add("eb-history-current");
     li.tabIndex = 0;
@@ -199,16 +308,37 @@ export function renderHistory(editor: Editor, container: HTMLElement): void {
  * Renders the panel now and on every history move, mirroring the timeline into
  * localStorage as it goes.
  *
+ * A new change is rendered from `onCommit` (which fires right after
+ * `onChange`, and is the only one carrying the operations); undo/redo/clear
+ * have no commit, so `onChange` renders those.
+ *
  * Subscribed to `history.onChange` rather than the editor's `document.change`
  * on purpose: the store emits `document.change` from *inside* `execute()`,
  * before History commits the transaction to its stack, so a panel refreshed
  * from there would always be one change behind.
  */
 export function initHistoryPanel(editor: Editor, container: HTMLElement, onMove: () => void = () => {}): () => void {
-  renderHistory(editor, container);
-  return editor.history.onChange(() => {
+  details = new Map();
+  settled = editor.getDocument();
+  const refresh = () => {
     persist(editor);
     renderHistory(editor, container);
     onMove();
+  };
+  renderHistory(editor, container);
+  const offCommit = editor.history.onCommit(({ transaction, operations }) => {
+    const after = editor.getDocument();
+    details.set(transaction.id!, describeTransaction(operations ?? [], settled ?? after, after));
+    settled = after;
+    refresh();
   });
+  const offChange = editor.history.onChange(({ kind }) => {
+    if (kind === "execute") return;
+    settled = editor.getDocument();
+    refresh();
+  });
+  return () => {
+    offCommit();
+    offChange();
+  };
 }

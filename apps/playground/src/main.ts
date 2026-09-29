@@ -3,7 +3,7 @@ import { mountCanvas, registerPaletteDrag, PALETTE_ITEMS } from "./canvas.js";
 import { componentIcon } from "./componentIcons.js";
 import { showContextMenu } from "./contextMenu.js";
 import { openExportDialog } from "./exportDialog.js";
-import { initHistoryPanel, resetHistoryPanel } from "./history.js";
+import { initHistoryPanel, renderHistory, resetHistoryPanel } from "./history.js";
 import { icon } from "./icons.js";
 import { initKeyboardShortcuts } from "./keyboard.js";
 import { renderInspector, renderLayers } from "./panels.js";
@@ -34,6 +34,7 @@ app.innerHTML = `
         <div class="eb-btn-group" role="group" aria-label="History">
           <button id="btn-undo" class="eb-btn eb-btn-icon" title="Undo" aria-label="Undo">${icon("undo")}</button>
           <button id="btn-redo" class="eb-btn eb-btn-icon" title="Redo" aria-label="Redo">${icon("redo")}</button>
+          <button id="btn-history" class="eb-btn eb-btn-icon" popovertarget="history-popover" title="History" aria-label="Show change history">${icon("history")}</button>
         </div>
         <div class="eb-btn-group" role="group" aria-label="Storage">
           <button id="btn-save" class="eb-btn" title="Save to local storage">${icon("save")}<span>Save</span></button>
@@ -46,14 +47,18 @@ app.innerHTML = `
         </button>
       </div>
     </header>
+    <!-- Native popover: light-dismiss (outside click / Escape) comes free.
+         Positioned below its button in JS on open, see btn-history below. -->
+    <div id="history-popover" class="eb-history-popover" popover>
+      <h3>History</h3>
+      <div id="history-list"></div>
+    </div>
     <div class="eb-body">
       <aside class="eb-panel eb-palette">
         <h3>Components</h3>
         <div id="palette-list"></div>
         <h3>Layers</h3>
         <div id="layers-list"></div>
-        <h3>History</h3>
-        <div id="history-list"></div>
       </aside>
       <main class="eb-canvas-wrapper">
         <div id="canvas" class="eb-canvas"></div>
@@ -124,6 +129,19 @@ function updateHistoryButtons(): void {
 
 undoBtn.addEventListener("click", () => editor.history.undo());
 redoBtn.addEventListener("click", () => editor.history.redo());
+
+const historyBtn = document.getElementById("btn-history") as HTMLButtonElement;
+const historyPopover = document.getElementById("history-popover") as HTMLElement;
+historyPopover.addEventListener("toggle", (event) => {
+  if ((event as ToggleEvent).newState !== "open") return;
+  // Top-layer popovers are position: fixed — pin it under the button, right
+  // edges aligned so it never runs off the toolbar's right side.
+  const rect = historyBtn.getBoundingClientRect();
+  historyPopover.style.top = `${rect.bottom + 6}px`;
+  historyPopover.style.right = `${document.documentElement.clientWidth - rect.right}px`;
+  // Re-render now that it's visible: the scroll-to-current math needs a real list height.
+  renderHistory(editor, historyEl);
+});
 
 document.getElementById("btn-save")!.addEventListener("click", async () => {
   // editor.save() tags the write with the revision it was based on, so a

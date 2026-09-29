@@ -368,7 +368,8 @@ button {
   border-right: none;
 }
 
-.eb-panel h3 {
+.eb-panel h3,
+.eb-history-popover h3 {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -1293,6 +1294,28 @@ button {
 
 /* ---------- History ---------- */
 
+/* top/right are set from the trigger button's rect when it opens (main.ts). */
+.eb-history-popover {
+  inset: auto;
+  margin: 0;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 10px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.eb-history-popover h3 {
+  margin-top: 0;
+}
+
+.eb-history-popover .eb-history {
+  max-height: min(360px, 60vh);
+}
+
 .eb-history {
   list-style: none;
   margin: 0;
@@ -1348,21 +1371,55 @@ button {
   border-radius: 50%;
 }
 
-.eb-history-row + .eb-history-row .eb-history-dot::before {
+/* The spine is drawn by the rows, not the dots, so it spans rows of any
+   height (detail lines included): a segment from the row's top down to its
+   dot, and one from the dot to the row's bottom, each only when a
+   neighbouring row continues the line. Offsets assume the row's fixed 18px
+   first line + 5px padding: dot center at 14px, dot spanning 10.5–17.5px. */
+.eb-history-row {
+  position: relative;
+  line-height: 18px;
+}
+
+.eb-history-row + .eb-history-row::before,
+.eb-history-row:has(+ .eb-history-row)::after {
   content: "";
   position: absolute;
-  left: 50%;
-  bottom: 100%;
+  left: 12px; /* 6px padding + half the 12px dot column */
   width: 1px;
-  height: 8px;
   transform: translateX(-50%);
   background: var(--border);
+}
+
+.eb-history-row + .eb-history-row::before {
+  top: 0;
+  height: 10px;
+}
+
+.eb-history-row:has(+ .eb-history-row)::after {
+  top: 18px;
+  bottom: 0;
 }
 
 .eb-history-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.eb-history-details {
+  grid-column: 2 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.eb-history-details li {
+  overflow-wrap: anywhere;
 }
 
 .eb-history-time {
