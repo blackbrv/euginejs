@@ -2,9 +2,28 @@
   <img src="assets/Eugine-logo.png" alt="Eugine logo" width="180" />
 </p>
 
-# Eugine
+<h1 align="center">Eugine</h1>
 
-**An extensible engine for building drag-and-drop visual editors and page builders.**
+<p align="center">
+  <strong>An extensible engine for building drag-and-drop visual editors and page builders.</strong><br />
+  Document model, component registry, undo/redo history and DOM + server-safe HTML renderers,
+  written in TypeScript with zero third-party runtime dependencies. You bring the editor UI.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/eugine"><img src="https://img.shields.io/npm/v/eugine?logo=npm&label=eugine&color=CB3837" alt="npm version" /></a>
+  <a href="https://github.com/blackbrv/euginejs/actions/workflows/ci.yml"><img src="https://github.com/blackbrv/euginejs/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D18.18-5FA04E?logo=nodedotjs&logoColor=white" alt="Node.js >=18.18" />
+  <img src="https://img.shields.io/badge/ESM%20%2B%20CJS-supported-F7DF1E?logo=javascript&logoColor=black" alt="ESM + CJS" />
+  <img src="https://img.shields.io/badge/tsup-8-000000" alt="tsup 8" />
+  <img src="https://img.shields.io/badge/Vitest-2-6E9F18?logo=vitest&logoColor=white" alt="Vitest 2" />
+  <img src="https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white" alt="Vite 5" />
+  <img src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/Fumadocs-docs-000000" alt="Fumadocs" />
+  <a href="https://euginejs-docs-js.vercel.app/"><img src="https://img.shields.io/badge/Vercel-docs-000000?logo=vercel&logoColor=white" alt="Docs on Vercel" /></a>
+</p>
 
 Eugine is not a complete website builder. It's the infrastructure any visual drag-and-drop
 editor is built *on top of* — a document model, component registry, command/history system, and
