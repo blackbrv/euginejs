@@ -44,6 +44,11 @@ const ICONS: Record<string, string> = {
   "font-weight-500": '<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="500" fill="currentColor" stroke="none">B</text>',
   "font-weight-600": '<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="600" fill="currentColor" stroke="none">B</text>',
   "font-weight-700": '<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="700" fill="currentColor" stroke="none">B</text>',
+  // Border style toggle — a line drawn in each style; "none" is Feather's slash.
+  "border-style-none": '<circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>',
+  "border-style-solid": '<line x1="3" y1="12" x2="21" y2="12" stroke-linecap="butt"></line>',
+  "border-style-dashed": '<line x1="3" y1="12" x2="21" y2="12" stroke-linecap="butt" stroke-dasharray="4 3"></line>',
+  "border-style-dotted": '<line x1="4" y1="12" x2="20" y2="12" stroke-dasharray="0 4"></line>',
 };
 
 export function icon(name: keyof typeof ICONS, className = "ks-icon"): string {

@@ -173,7 +173,7 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     property: "border-style",
     label: "Style",
     group: "Border",
-    control: "select",
+    control: "toggle",
     options: ["none", "solid", "dashed", "dotted"],
   },
   { property: "border-color", label: "Color", group: "Border", control: "color" },
