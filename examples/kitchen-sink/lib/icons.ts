@@ -57,6 +57,24 @@ const ICONS: Record<string, string> = {
   "object-fit-cover": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="6" y="2" width="12" height="20" rx="1"></rect>',
   "object-fit-none": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="10" y="10" width="4" height="4" rx="0.5"></rect>',
   "object-fit-scale-down": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="10" y="10" width="4" height="4" rx="0.5"></rect><polyline points="5 10 7 12 5 14"></polyline><polyline points="19 10 17 12 19 14"></polyline>',
+  // Layout toggles. Direction: Feather arrows. Justify/Align: two filled
+  // items between the container's edges (left/right walls for the main axis,
+  // top/bottom for the cross axis), drawn for a row — not rotated for column.
+  "flex-direction-row": '<line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline>',
+  "flex-direction-column": '<line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline>',
+  "flex-direction-row-reverse": '<line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline>',
+  "flex-direction-column-reverse": '<line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline>',
+  "justify-content-flex-start": '<line x1="2" y1="3" x2="2" y2="21"></line><line x1="22" y1="3" x2="22" y2="21"></line><rect x="4" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect><rect x="9" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect>',
+  "justify-content-center": '<line x1="2" y1="3" x2="2" y2="21"></line><line x1="22" y1="3" x2="22" y2="21"></line><rect x="8" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect><rect x="13" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect>',
+  "justify-content-flex-end": '<line x1="2" y1="3" x2="2" y2="21"></line><line x1="22" y1="3" x2="22" y2="21"></line><rect x="12" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect><rect x="17" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect>',
+  "justify-content-space-between": '<line x1="2" y1="3" x2="2" y2="21"></line><line x1="22" y1="3" x2="22" y2="21"></line><rect x="4" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect><rect x="17" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect>',
+  "justify-content-space-around": '<line x1="2" y1="3" x2="2" y2="21"></line><line x1="22" y1="3" x2="22" y2="21"></line><rect x="6.5" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect><rect x="14.5" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect>',
+  "justify-content-space-evenly": '<line x1="2" y1="3" x2="2" y2="21"></line><line x1="22" y1="3" x2="22" y2="21"></line><rect x="7.33" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect><rect x="13.67" y="6" width="3" height="12" rx="1" fill="currentColor" stroke="none"></rect>',
+  "align-items-stretch": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"></rect>',
+  "align-items-flex-start": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="4" width="4" height="10" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="4" width="4" height="6" rx="1" fill="currentColor" stroke="none"></rect>',
+  "align-items-center": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="7" width="4" height="10" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="9" width="4" height="6" rx="1" fill="currentColor" stroke="none"></rect>',
+  "align-items-flex-end": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="10" width="4" height="10" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="14" width="4" height="6" rx="1" fill="currentColor" stroke="none"></rect>',
+  "align-items-baseline": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="4" width="4" height="8" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="8" width="4" height="4" rx="1" fill="currentColor" stroke="none"></rect><line x1="3" y1="16" x2="21" y2="16" stroke-dasharray="2 2"></line>',
 };
 
 export function icon(name: keyof typeof ICONS, className = "ks-icon"): string {
