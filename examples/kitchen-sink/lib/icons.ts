@@ -49,6 +49,14 @@ const ICONS: Record<string, string> = {
   "border-style-solid": '<line x1="3" y1="12" x2="21" y2="12" stroke-linecap="butt"></line>',
   "border-style-dashed": '<line x1="3" y1="12" x2="21" y2="12" stroke-linecap="butt" stroke-dasharray="4 3"></line>',
   "border-style-dotted": '<line x1="4" y1="12" x2="20" y2="12" stroke-dasharray="0 4"></line>',
+  // Object fit toggle — a landscape frame holding a square "image", shown
+  // stretched (fill), fitted (contain), overflowing top/bottom (cover), or at
+  // natural size (none; scale-down adds inward arrows).
+  "object-fit-fill": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="5" y="8" width="14" height="8" rx="1"></rect>',
+  "object-fit-contain": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="8" y="8" width="8" height="8" rx="1"></rect>',
+  "object-fit-cover": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="6" y="2" width="12" height="20" rx="1"></rect>',
+  "object-fit-none": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="10" y="10" width="4" height="4" rx="0.5"></rect>',
+  "object-fit-scale-down": '<rect x="2" y="5" width="20" height="14" rx="2"></rect><rect x="10" y="10" width="4" height="4" rx="0.5"></rect><polyline points="5 10 7 12 5 14"></polyline><polyline points="19 10 17 12 19 14"></polyline>',
 };
 
 export function icon(name: keyof typeof ICONS, className = "ks-icon"): string {

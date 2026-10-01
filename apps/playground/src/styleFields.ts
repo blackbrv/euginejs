@@ -130,7 +130,7 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     property: "object-fit",
     label: "Object fit",
     group: "Image",
-    control: "select",
+    control: "toggle",
     options: ["fill", "contain", "cover", "none", "scale-down"],
     onlyForTypes: ["image"],
   },
