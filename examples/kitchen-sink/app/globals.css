@@ -308,10 +308,14 @@ body {
 
 /* ---------- Palette ---------- */
 
+/* ~3.5 rows visible; the rest scrolls inside the section (the half row hints there's more). */
 .ks-palette-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 2px;
 }
 
 .ks-palette-item {
@@ -320,7 +324,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 12px 6px;
+  padding: 10px 2px;
+  min-width: 0;
   background: var(--surface-alt);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -351,6 +356,10 @@ body {
 .ks-palette-label {
   color: var(--text);
   line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .ks-palette-item:hover {
@@ -611,6 +620,82 @@ body {
 
 .ks-inspector button:hover {
   background: var(--surface-hover);
+}
+
+/* Segmented icon toggle (design panel "toggle" control, e.g. Display). */
+
+.ks-toggle-group {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.ks-toggle {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.ks-toggle .ks-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.ks-toggle:hover {
+  color: var(--text);
+}
+
+.ks-toggle[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.ks-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Tooltip sits above the button: .ks-design-group clips overflow, and the
+   field label + group header above always leave room for it. */
+.ks-toggle::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 7px;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--surface);
+  background: var(--text);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms var(--ease);
+  z-index: 10;
+}
+
+.ks-toggle:hover::after,
+.ks-toggle:focus-visible::after {
+  opacity: 1;
+  transition-delay: 250ms;
 }
 
 /* ---------- Design panel ---------- */

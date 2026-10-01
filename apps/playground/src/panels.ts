@@ -399,7 +399,8 @@ function renderDesignField(
   field: DesignFieldDef,
   previewStyle: PreviewStyle,
 ): void {
-  const row = document.createElement("label");
+  // A <label> would forward clicks on the field name to the first toggle button.
+  const row = document.createElement(field.control === "toggle" ? "div" : "label");
   row.className = field.control === "color" ? "eb-field eb-field-color" : "eb-field";
 
   const labelEl = document.createElement("span");
@@ -408,7 +409,25 @@ function renderDesignField(
 
   const value = currentStyle(node, field.property);
 
-  if (field.control === "select") {
+  if (field.control === "toggle") {
+    const group = document.createElement("div");
+    group.className = "eb-toggle-group";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", field.label);
+    for (const optionValue of field.options ?? []) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "eb-toggle";
+      btn.dataset.tooltip = optionValue;
+      btn.setAttribute("aria-label", optionValue);
+      btn.setAttribute("aria-pressed", String(optionValue === value));
+      btn.innerHTML = icon(`${field.property}-${optionValue}`);
+      // Clicking the active option clears it back to Default (the select's empty option).
+      btn.addEventListener("click", () => setStyle(editor, node, field.property, optionValue === value ? "" : optionValue));
+      group.appendChild(btn);
+    }
+    row.appendChild(group);
+  } else if (field.control === "select") {
     const select = document.createElement("select");
     select.className = "eb-select";
     const defaultOption = document.createElement("option");

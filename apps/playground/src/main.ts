@@ -56,7 +56,7 @@ app.innerHTML = `
     <div class="eb-body">
       <aside class="eb-panel eb-palette">
         <h3>Components</h3>
-        <div id="palette-list"></div>
+        <div id="palette-list" class="eb-palette-grid"></div>
         <h3>Layers</h3>
         <div id="layers-list"></div>
       </aside>
@@ -113,6 +113,7 @@ editor.selection.onSelectionChange(({ ids }) => {
 for (const item of PALETTE_ITEMS) {
   const el = document.createElement("div");
   el.className = "eb-palette-item";
+  el.title = item.label; // the label can ellipsize in the 3-column grid
   el.innerHTML = `${componentIcon(item.type)}<span>${item.label}</span>`;
   registerPaletteDrag(el, item.type);
   el.addEventListener("click", () => selectNode(editor.insert(item.type, editor.getDocument().rootId)));

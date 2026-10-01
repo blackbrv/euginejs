@@ -1,6 +1,6 @@
 import type { NodeStyles } from "eugine";
 
-export type DesignControl = "color" | "text" | "select" | "length" | "grid-tracks";
+export type DesignControl = "color" | "text" | "select" | "toggle" | "length" | "grid-tracks";
 
 export interface DesignFieldDependency {
   property: string;
@@ -72,7 +72,8 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     property: "display",
     label: "Display",
     group: "Layout",
-    control: "select",
+    // A segmented row of icon buttons (one per option); icons come from DISPLAY_ICONS in panels.ts.
+    control: "toggle",
     options: ["block", "flex", "grid", "inline-block", "none"],
   },
   {
