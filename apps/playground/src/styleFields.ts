@@ -17,6 +17,8 @@ export interface DesignFieldDef {
   group: "Layout" | "Size" | "Image" | "Background" | "Typography" | "Border" | "Spacing" | "Effects" | "Animation";
   control: DesignControl;
   options?: string[];
+  /** Human-readable names for `options` (toggle tooltips/aria-labels). Falls back to the raw value. */
+  optionLabels?: Record<string, string>;
   placeholder?: string;
   /** Units offered for a "length" control's unit dropdown. Defaults to DEFAULT_LENGTH_UNITS. */
   units?: string[];
@@ -155,8 +157,9 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     property: "font-weight",
     label: "Font weight",
     group: "Typography",
-    control: "select",
+    control: "toggle",
     options: ["400", "500", "600", "700"],
+    optionLabels: { "400": "Regular 400", "500": "Medium 500", "600": "Semibold 600", "700": "Bold 700" },
   },
   {
     property: "text-align",

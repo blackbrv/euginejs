@@ -39,6 +39,11 @@ const ICONS: Record<string, string> = {
   "text-align-center": '<line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line>',
   "text-align-right": '<line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line>',
   "text-align-justify": '<line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line>',
+  // Font weight toggle — a "B" drawn at each weight, so the buttons preview it.
+  "font-weight-400": '<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="400" fill="currentColor" stroke="none">B</text>',
+  "font-weight-500": '<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="500" fill="currentColor" stroke="none">B</text>',
+  "font-weight-600": '<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="600" fill="currentColor" stroke="none">B</text>',
+  "font-weight-700": '<text x="12" y="18" text-anchor="middle" font-size="18" font-weight="700" fill="currentColor" stroke="none">B</text>',
 };
 
 export function icon(name: keyof typeof ICONS, className = "ks-icon"): string {

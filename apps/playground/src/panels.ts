@@ -418,8 +418,9 @@ function renderDesignField(
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "eb-toggle";
-      btn.dataset.tooltip = optionValue;
-      btn.setAttribute("aria-label", optionValue);
+      const optionLabel = field.optionLabels?.[optionValue] ?? optionValue;
+      btn.dataset.tooltip = optionLabel;
+      btn.setAttribute("aria-label", optionLabel);
       btn.setAttribute("aria-pressed", String(optionValue === value));
       btn.innerHTML = icon(`${field.property}-${optionValue}`);
       // Clicking the active option clears it back to Default (the select's empty option).
