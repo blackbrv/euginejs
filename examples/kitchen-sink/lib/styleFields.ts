@@ -72,7 +72,7 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     property: "display",
     label: "Display",
     group: "Layout",
-    // A segmented row of icon buttons (one per option); icons come from DISPLAY_ICONS in panels.ts.
+    // A segmented row of icon buttons, one per option, iconed by "<property>-<value>" in icons.ts.
     control: "toggle",
     options: ["block", "flex", "grid", "inline-block", "none"],
   },
@@ -162,7 +162,7 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     property: "text-align",
     label: "Text align",
     group: "Typography",
-    control: "select",
+    control: "toggle",
     options: ["left", "center", "right", "justify"],
   },
   { property: "border-width", label: "Width", group: "Border", control: "length", units: ["px", "rem", "em"] },
