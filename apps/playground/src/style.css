@@ -893,6 +893,19 @@ button {
   z-index: 10;
 }
 
+/* Edge buttons anchor their tooltip to that edge, so a long one
+   ("space-evenly") isn't clipped by the design group. */
+.eb-toggle:first-child::after {
+  left: 0;
+  transform: none;
+}
+
+.eb-toggle:last-child::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
 .eb-toggle:hover::after,
 .eb-toggle:focus-visible::after {
   opacity: 1;
