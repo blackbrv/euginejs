@@ -152,6 +152,7 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
   },
   { property: "background-color", label: "Background", group: "Background", control: "color" },
   { property: "color", label: "Text color", group: "Typography", control: "color" },
+  { property: "font-family", label: "Font family", group: "Typography", control: "text", placeholder: "Inter, sans-serif" },
   { property: "font-size", label: "Font size", group: "Typography", control: "length" },
   {
     property: "font-weight",
@@ -162,11 +163,37 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
     optionLabels: { "400": "Regular 400", "500": "Medium 500", "600": "Semibold 600", "700": "Bold 700" },
   },
   {
+    property: "font-style",
+    label: "Font style",
+    group: "Typography",
+    control: "toggle",
+    options: ["normal", "italic"],
+  },
+  { property: "line-height", label: "Line height", group: "Typography", control: "text", placeholder: "1.5" },
+  { property: "letter-spacing", label: "Letter spacing", group: "Typography", control: "length", units: ["px", "em", "rem"] },
+  {
     property: "text-align",
     label: "Text align",
     group: "Typography",
     control: "toggle",
     options: ["left", "center", "right", "justify"],
+  },
+  {
+    // The longhand, so a hand-written `text-decoration` color/style in Custom CSS isn't clobbered.
+    // ponytail: one line at a time; underline + line-through together needs a multi-select toggle.
+    property: "text-decoration-line",
+    label: "Decoration",
+    group: "Typography",
+    control: "toggle",
+    options: ["none", "underline", "line-through", "overline"],
+  },
+  {
+    property: "text-transform",
+    label: "Case",
+    group: "Typography",
+    control: "toggle",
+    options: ["none", "uppercase", "lowercase", "capitalize"],
+    optionLabels: { none: "none", uppercase: "UPPERCASE", lowercase: "lowercase", capitalize: "Capitalize" },
   },
   { property: "border-width", label: "Width", group: "Border", control: "length", units: ["px", "rem", "em"] },
   {

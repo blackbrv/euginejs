@@ -80,6 +80,18 @@ const ICONS: Record<string, string> = {
   "align-items-center": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="7" width="4" height="10" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="9" width="4" height="6" rx="1" fill="currentColor" stroke="none"></rect>',
   "align-items-flex-end": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="10" width="4" height="10" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="14" width="4" height="6" rx="1" fill="currentColor" stroke="none"></rect>',
   "align-items-baseline": '<line x1="3" y1="2" x2="21" y2="2"></line><line x1="3" y1="22" x2="21" y2="22"></line><rect x="6" y="4" width="4" height="8" rx="1" fill="currentColor" stroke="none"></rect><rect x="14" y="8" width="4" height="4" rx="1" fill="currentColor" stroke="none"></rect><line x1="3" y1="16" x2="21" y2="16" stroke-dasharray="2 2"></line>',
+  // Typography toggles — glyphs drawn as SVG text: a serif "I" upright/italic,
+  // an "A" with the decoration line in place, and the case each transform gives.
+  "font-style-normal": '<text x="12" y="18" text-anchor="middle" font-size="18" font-family="Georgia, serif" fill="currentColor" stroke="none">I</text>',
+  "font-style-italic": '<text x="12" y="18" text-anchor="middle" font-size="18" font-family="Georgia, serif" font-style="italic" fill="currentColor" stroke="none">I</text>',
+  "text-decoration-line-none": '<text font-weight="600" x="12" y="18" text-anchor="middle" font-size="16" fill="currentColor" stroke="none">A</text>',
+  "text-decoration-line-underline": '<text font-weight="600" x="12" y="18" text-anchor="middle" font-size="16" fill="currentColor" stroke="none">A</text><line x1="4" y1="22" x2="20" y2="22"></line>',
+  "text-decoration-line-line-through": '<text font-weight="600" x="12" y="18" text-anchor="middle" font-size="16" fill="currentColor" stroke="none">A</text><line x1="4" y1="12.5" x2="20" y2="12.5"></line>',
+  "text-decoration-line-overline": '<text font-weight="600" x="12" y="18" text-anchor="middle" font-size="16" fill="currentColor" stroke="none">A</text><line x1="4" y1="2.5" x2="20" y2="2.5"></line>',
+  "text-transform-none": '<circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>',
+  "text-transform-uppercase": '<text font-weight="600" x="12" y="18" text-anchor="middle" font-size="13" fill="currentColor" stroke="none">AB</text>',
+  "text-transform-lowercase": '<text font-weight="600" x="12" y="18" text-anchor="middle" font-size="14" fill="currentColor" stroke="none">ab</text>',
+  "text-transform-capitalize": '<text font-weight="600" x="12" y="18" text-anchor="middle" font-size="14" fill="currentColor" stroke="none">Ab</text>',
 };
 
 export function icon(name: keyof typeof ICONS, className = "eb-icon"): string {
