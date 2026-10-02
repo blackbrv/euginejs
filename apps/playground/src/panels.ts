@@ -4,11 +4,13 @@ import { CARET_ICON, componentIcon } from "./componentIcons.js";
 import { icon } from "./icons.js";
 import { schemaFor } from "./schema.js";
 import {
+  activeToggleOptions,
   DEFAULT_LENGTH_UNITS,
   DESIGN_FIELDS,
   DESIGN_GROUPS,
   formatGridTrackCount,
   isCustomStyleProperty,
+  nextToggleValue,
   parseGridTrackCount,
   parseLength,
   type DesignFieldDef,
@@ -421,10 +423,9 @@ function renderDesignField(
       const optionLabel = field.optionLabels?.[optionValue] ?? optionValue;
       btn.dataset.tooltip = optionLabel;
       btn.setAttribute("aria-label", optionLabel);
-      btn.setAttribute("aria-pressed", String(optionValue === value));
+      btn.setAttribute("aria-pressed", String(activeToggleOptions(value).includes(optionValue)));
       btn.innerHTML = icon(`${field.property}-${optionValue}`);
-      // Clicking the active option clears it back to Default (the select's empty option).
-      btn.addEventListener("click", () => setStyle(editor, node, field.property, optionValue === value ? "" : optionValue));
+      btn.addEventListener("click", () => setStyle(editor, node, field.property, nextToggleValue(field, value, optionValue)));
       group.appendChild(btn);
     }
     row.appendChild(group);

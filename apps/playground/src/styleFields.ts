@@ -19,6 +19,8 @@ export interface DesignFieldDef {
   options?: string[];
   /** Human-readable names for `options` (toggle tooltips/aria-labels). Falls back to the raw value. */
   optionLabels?: Record<string, string>;
+  /** Toggle only: options combine into a space-separated value (e.g. "underline line-through"); "none" stays exclusive. */
+  multiple?: boolean;
   placeholder?: string;
   /** Units offered for a "length" control's unit dropdown. Defaults to DEFAULT_LENGTH_UNITS. */
   units?: string[];
@@ -33,6 +35,29 @@ export function parseLength(value: string): { amount: string; unit: string } | n
   const match = /^(-?\d*\.?\d+)([a-z%]*)$/i.exec(value.trim());
   if (!match) return null;
   return { amount: match[1]!, unit: match[2]! };
+}
+
+/** The options a toggle shows as pressed: every space-separated token of the current value. */
+export function activeToggleOptions(value: string): string[] {
+  return value.split(/\s+/).filter(Boolean);
+}
+
+/**
+ * The value a toggle writes when `option` is clicked. Single-choice: the
+ * option, or "" (Default) if it's already the active one. `multiple`: flips
+ * `option` in the set, kept in `options` order (unknown hand-written tokens
+ * stay, at the end); "none" replaces everything, and picking anything else
+ * drops "none". An emptied set writes "" (Default).
+ */
+export function nextToggleValue(field: DesignFieldDef, value: string, option: string): string {
+  const active = activeToggleOptions(value);
+  if (!field.multiple || option === "none") return active.length === 1 && active[0] === option ? "" : option;
+  const next = active.includes(option) ? active.filter((v) => v !== option) : [...active.filter((v) => v !== "none"), option];
+  const rank = (v: string) => {
+    const i = field.options?.indexOf(v) ?? -1;
+    return i === -1 ? Infinity : i;
+  };
+  return next.sort((a, b) => rank(a) - rank(b)).join(" ");
 }
 
 /**
@@ -180,12 +205,12 @@ export const DESIGN_FIELDS: DesignFieldDef[] = [
   },
   {
     // The longhand, so a hand-written `text-decoration` color/style in Custom CSS isn't clobbered.
-    // ponytail: one line at a time; underline + line-through together needs a multi-select toggle.
     property: "text-decoration-line",
     label: "Decoration",
     group: "Typography",
     control: "toggle",
     options: ["none", "underline", "line-through", "overline"],
+    multiple: true,
   },
   {
     property: "text-transform",
