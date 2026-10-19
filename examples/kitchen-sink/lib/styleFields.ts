@@ -1,3 +1,4 @@
+// Design-panel field definitions only; applying/serializing styles lives in eugine/renderer and eugine/server.
 
 export type DesignControl = "color" | "text" | "select" | "toggle" | "length" | "grid-tracks";
 
