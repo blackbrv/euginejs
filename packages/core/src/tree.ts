@@ -319,8 +319,9 @@ export function moveNode(document: EugineDocument, id: string, newParentId: stri
  */
 export function reconcileOrder(currentChildIds: string[], desiredOrder: string[]): string[] {
   const current = new Set(currentChildIds);
-  const kept = desiredOrder.filter((id) => current.has(id));
-  const placed = new Set(kept);
+  const placed = new Set<string>();
+  // Repeats in `desiredOrder` keep their first position only.
+  const kept = desiredOrder.filter((id) => current.has(id) && !placed.has(id) && placed.add(id));
   const appended = currentChildIds.filter((id) => !placed.has(id));
   return [...kept, ...appended];
 }
@@ -343,7 +344,10 @@ export function reorderChildren(
   const parent = getNode(document, parentId);
   const currentSet = new Set(parent.children);
   const nextSet = new Set(orderedChildIds);
-  const matches = currentSet.size === nextSet.size && ![...currentSet].some((id) => !nextSet.has(id));
+  const matches =
+    orderedChildIds.length === parent.children.length &&
+    currentSet.size === nextSet.size &&
+    ![...currentSet].some((id) => !nextSet.has(id));
 
   if (!matches && options.strict !== false) {
     throw invalidDocument("reorderChildren must be given exactly the current child ids, reordered.", {

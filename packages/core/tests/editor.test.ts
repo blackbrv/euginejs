@@ -358,4 +358,12 @@ describe("every mutating editor method validates against the registry", () => {
     editor.history.undo();
     expect(editor.getNode(wrapper)).toMatchObject({ hidden: true, editable: false });
   });
+
+  it("reorder rejects a repeated child id", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const a = editor.insert("text", root);
+    const b = editor.insert("text", root);
+    expect(() => editor.reorder(root, [a, a, b])).toThrow(expect.objectContaining({ code: "EUGINE_DOCUMENT_INVALID" }));
+  });
 });
