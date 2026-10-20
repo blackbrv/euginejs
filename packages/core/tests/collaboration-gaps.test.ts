@@ -617,3 +617,18 @@ describe("validateDocument rejects structures every tree-walker would loop on", 
     expect(() => validateDocument(doc)).toThrow(/more than once/);
   });
 });
+
+describe("replace never touches children", () => {
+  it("keeps a child another client added between a local replace and its undo", () => {
+    const editor = makeEditor("a");
+    const box = editor.insert("box", "root", { props: { title: "Old" } });
+    editor.replace(box, { ...editor.getNode(box), props: { title: "New" } });
+    editor.applyRemote([{ type: "insert", node: createNode("heading", { id: "c1" }), parentId: box }], { clientId: "b" });
+
+    editor.history.undo();
+
+    expect(editor.getNode(box).props.title).toBe("Old");
+    expect(editor.getNode(box).children).toEqual(["c1"]);
+    validateDocument(editor.getDocument());
+  });
+});

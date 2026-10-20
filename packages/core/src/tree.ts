@@ -432,7 +432,10 @@ export function invertPatch(
 export function replaceNode(document: EugineDocument, id: string, next: EugineNode): EugineDocument {
   const existing = getNode(document, id);
   const nodes = cloneNodesMap(document);
-  nodes[id] = { ...next, id, parent: existing.parent, children: next.children ?? existing.children };
+  // Children are structure, owned by insert/move/remove/reorder. Taking them
+  // from `next` would let a replace orphan nodes, and would make its undo (or
+  // a late remote replace) drop a child someone else added in between.
+  nodes[id] = { ...next, id, parent: existing.parent, children: existing.children };
   return { ...document, nodes };
 }
 
