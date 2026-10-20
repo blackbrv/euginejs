@@ -598,7 +598,10 @@ export function validateDocument(document: EugineDocument, options: ValidateDocu
         throw invalidDocument(`Node "${childId}" parent pointer does not match its declared parent "${id}".`);
       }
       const previousParent = seenAsChild.get(childId);
-      if (previousParent && previousParent !== id) {
+      if (previousParent === id) {
+        throw invalidDocument(`Node "${childId}" is listed more than once in "${id}"'s children.`);
+      }
+      if (previousParent) {
         throw invalidDocument(`Node "${childId}" is referenced as a child of multiple parents.`, {
           parents: [previousParent, id],
         });
@@ -614,38 +617,38 @@ export function validateDocument(document: EugineDocument, options: ValidateDocu
   // from the root, not folded into the loop above and not recursive.
   //
   // Recursive would just move the stack-overflow risk into the validator
-  // itself. Folding it into the loop above by memoizing an upward walk of
-  // `.parent` per node (cheaper, one pass) was tried and rejected — that loop
-  // iterates every id in `document.nodes`, including ones the checks above
-  // never require to be reachable from root, and this file has no rule
-  // against two disconnected nodes pointing at each other as parent/child
-  // (each still has exactly one parent, so the single-parent check above
-  // doesn't catch it). An upward walk from such an island loops forever.
-  // Starting *only* from the root and walking down through already-confirmed
-  // children avoids that: everything visited here is provably reachable from
-  // root, and the invariants just enforced (single parent, root has none)
-  // make the root-reachable portion a genuine tree, so this always
-  // terminates — at the cost of being a second O(n) pass rather than folded
-  // into the first.
+  // itself. Starting *only* from the root and walking down through
+  // already-confirmed children always terminates: the invariants just
+  // enforced (single parent, no repeats, root has none) make the
+  // root-reachable portion a genuine tree. Anything *not* reached is an
+  // island — possibly two nodes naming each other as parent and child, which
+  // the checks above can't see — and every recursive tree-walker and renderer
+  // would loop on it, so it's rejected.
   const maxDepth = options.maxDepth ?? DEFAULT_MAX_DEPTH;
-  if (Number.isFinite(maxDepth)) {
-    let frontier = [document.rootId];
-    let depth = 0;
-    while (frontier.length > 0) {
-      if (depth > maxDepth) {
-        throw invalidDocument(
-          `Document nesting depth exceeds the maximum of ${maxDepth}. This limit exists to prevent a ` +
-            `stack-overflow denial of service in the recursive renderers; pass { maxDepth: Infinity } to ` +
-            `validateDocument() if this document's depth is intentional.`,
-          { maxDepth },
-        );
-      }
-      const next: string[] = [];
-      for (const id of frontier) {
-        for (const childId of document.nodes[id]!.children) next.push(childId);
-      }
-      frontier = next;
-      depth++;
+  let frontier = [document.rootId];
+  let depth = 0;
+  const reached = new Set<string>();
+  while (frontier.length > 0) {
+    if (depth > maxDepth) {
+      throw invalidDocument(
+        `Document nesting depth exceeds the maximum of ${maxDepth}. This limit exists to prevent a ` +
+          `stack-overflow denial of service in the recursive renderers; pass { maxDepth: Infinity } to ` +
+          `validateDocument() if this document's depth is intentional.`,
+        { maxDepth },
+      );
     }
+    const next: string[] = [];
+    for (const id of frontier) {
+      reached.add(id);
+      for (const childId of document.nodes[id]!.children) next.push(childId);
+    }
+    frontier = next;
+    depth++;
+  }
+  const unreachable = Object.keys(document.nodes).filter((id) => !reached.has(id));
+  if (unreachable.length > 0) {
+    throw invalidDocument(`${unreachable.length} node(s) are not reachable from the root.`, {
+      unreachable: unreachable.slice(0, 20),
+    });
   }
 }

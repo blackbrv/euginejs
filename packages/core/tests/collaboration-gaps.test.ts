@@ -14,6 +14,7 @@ import { InsertNodeCommand } from "../src/commands/insert.js";
 import { createAutosave } from "../src/storage.js";
 import { applyOperations, type EugineOperation } from "../src/operations.js";
 import {
+  createEmptyDocument,
   createNode,
   hasNode,
   insertNode,
@@ -524,5 +525,20 @@ describe("tree helpers used by the fixes", () => {
     const h = editor.insert("heading", "root", { props: { keep: 1, drop: 2 } });
     const next = updateNodeProps(editor.getDocument(), h, {}, { merge: true, unset: ["drop"] });
     expect(next.nodes[h]?.props).toEqual({ keep: 1 });
+  });
+});
+
+describe("validateDocument rejects structures every tree-walker would loop on", () => {
+  it("rejects an island of two nodes naming each other as parent and child", () => {
+    const doc = createEmptyDocument();
+    const a = { ...createNode("box", { id: "a" }), parent: "b", children: ["b"] };
+    const b = { ...createNode("box", { id: "b" }), parent: "a", children: ["a"] };
+    expect(() => validateDocument({ ...doc, nodes: { ...doc.nodes, a, b } })).toThrow(/not reachable/);
+  });
+
+  it("rejects a child listed twice under the same parent", () => {
+    let doc = insertNode(createEmptyDocument(), createNode("box", { id: "a" }), "root");
+    doc = { ...doc, nodes: { ...doc.nodes, root: { ...doc.nodes.root!, children: ["a", "a"] } } };
+    expect(() => validateDocument(doc)).toThrow(/more than once/);
   });
 });

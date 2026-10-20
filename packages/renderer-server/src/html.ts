@@ -1,4 +1,4 @@
-import { ComponentRegistry, EugineError, getNode } from "@euginejs/core";
+import { ComponentRegistry, EugineError, getNode, validateDocument } from "@euginejs/core";
 import type { EugineDocument, EugineNode, NodeProps } from "@euginejs/core";
 import { escapeAttribute, escapeHtml } from "./sanitize.js";
 
@@ -34,11 +34,16 @@ export interface RenderToStringOptions<TData = unknown> {
  * dynamically importing anything named in the document — every node's
  * `type` is resolved strictly against the supplied ComponentRegistry (see
  * "Component Registry as Security Boundary" in the PRD).
+ *
+ * Validates the document first: SSR is often fed JSON straight from a
+ * database or request, and a cycle or over-deep tree in it would otherwise
+ * overflow the stack here instead of throwing EUGINE_DOCUMENT_INVALID.
  */
 export function renderToString<TData = unknown>(
   document: EugineDocument,
   options: RenderToStringOptions<TData>,
 ): string {
+  validateDocument(document);
   const onMissing = options.onMissingComponent ?? "placeholder";
 
   function renderNode(id: string): string {

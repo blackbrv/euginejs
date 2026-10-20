@@ -73,6 +73,15 @@ describe("renderToString", () => {
     expect(() => renderToString(doc, { registry, onMissingComponent: "throw" })).toThrow();
   });
 
+  it("throws EUGINE_DOCUMENT_INVALID on a cyclic document instead of overflowing the stack", () => {
+    const doc = createEmptyDocument();
+    const root = { ...doc.nodes[doc.rootId]!, children: ["a"] };
+    const a = { ...createNode("box", { id: "a" }), parent: doc.rootId, children: [doc.rootId] };
+    expect(() => renderToString({ ...doc, nodes: { [doc.rootId]: root, a } }, { registry: new ComponentRegistry() })).toThrow(
+      expect.objectContaining({ code: "EUGINE_DOCUMENT_INVALID" }),
+    );
+  });
+
   it("omits hidden nodes from output", () => {
     let doc = createEmptyDocument();
     doc = insertNode(doc, createNode("text", { id: "t", hidden: true, props: { content: "secret" } }), doc.rootId);
