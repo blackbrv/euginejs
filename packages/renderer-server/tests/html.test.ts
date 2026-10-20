@@ -155,12 +155,12 @@ describe("attributesToHtml", () => {
     expect(attributesToHtml({ SrcDoc: "<script>alert(1)</script>" })).toBe("");
   });
 
-  it("does not drop an ordinary attribute that merely starts with \"on\"", () => {
-    // A blanket /^on/ prefix match would wrongly swallow these — only exact,
-    // known event-handler names are filtered.
-    expect(attributesToHtml({ once: "true" })).toBe(' once="true"');
-    expect(attributesToHtml({ online: "yes" })).toBe(' online="yes"');
-    expect(attributesToHtml({ onSurface: "primary" })).toBe(' onSurface="primary"');
+  it("drops every attribute starting with \"on\", not just known handler names", () => {
+    // Browsers keep adding handlers an exact-match list would miss.
+    expect(attributesToHtml({ onwebkitanimationend: "alert(1)" })).toBe("");
+    expect(attributesToHtml({ onselectstart: "alert(1)" })).toBe("");
+    expect(attributesToHtml({ onscrollsnapchange: "alert(1)" })).toBe("");
+    expect(attributesToHtml({ once: "true" })).toBe("");
   });
 
   it("sanitizes known URL attributes against unsafe schemes", () => {
@@ -182,6 +182,9 @@ describe("sanitizeUrl", () => {
   it("rejects javascript: and vbscript: and data: URLs", () => {
     expect(sanitizeUrl("javascript:alert(1)")).toBeNull();
     expect(sanitizeUrl("  JAVASCRIPT:alert(1)")).toBeNull();
+    // Browsers strip leading C0 controls before reading the scheme.
+    expect(sanitizeUrl("\x01javascript:alert(1)")).toBeNull();
+    expect(sanitizeUrl("\x1f\x00java\tscript:alert(1)")).toBeNull();
     expect(sanitizeUrl("vbscript:msgbox(1)")).toBeNull();
     expect(sanitizeUrl("data:text/html,<script>alert(1)</script>")).toBeNull();
   });

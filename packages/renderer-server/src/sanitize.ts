@@ -18,13 +18,15 @@ export function escapeAttribute(value: unknown): string {
 
 /**
  * Matches `javascript:`/`vbscript:`/`data:` at the start of a URL. Browsers
- * strip all ASCII tab/newline characters from a URL before parsing its scheme
- * (WHATWG URL spec), so `"java\tscript:..."` resolves as plain `javascript:`.
- * To avoid the known filter-evasion where embedded whitespace slips past the
- * regex, the scheme test runs against a copy with `\t`/`\n`/`\r` removed (the
- * return value keeps the caller's original text, matching DOMPurify etc.).
+ * strip leading/trailing C0 controls and spaces (U+0000–U+0020) and every
+ * ASCII tab/newline anywhere before parsing a scheme (WHATWG URL spec), so
+ * `"\x01java\tscript:..."` resolves as plain `javascript:`. The scheme test
+ * runs against a copy normalized the same way, or those evasions slip past.
  */
-const UNSAFE_URL_SCHEME = /^\s*(javascript|vbscript|data):/i;
+const UNSAFE_URL_SCHEME = /^(javascript|vbscript|data):/i;
+
+/** What the WHATWG URL parser strips from both ends of a URL before reading it. */
+const C0_CONTROL_OR_SPACE = /^[\x00-\x20]+|[\x00-\x20]+$/g;
 
 /**
  * Rejects `javascript:`/`vbscript:` URLs (and data: URIs, which can also
@@ -34,7 +36,7 @@ const UNSAFE_URL_SCHEME = /^\s*(javascript|vbscript|data):/i;
  */
 export function sanitizeUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
+  const trimmed = value.replace(C0_CONTROL_OR_SPACE, "");
   if (trimmed.length === 0) return null;
   const schemeCheck = trimmed.replace(/[\t\n\r]/g, "");
   if (UNSAFE_URL_SCHEME.test(schemeCheck)) return null;
@@ -57,41 +59,18 @@ const URL_ATTRIBUTES = new Set(["href", "src", "action", "formaction", "xlink:hr
 const BLOCKED_ATTRIBUTES = new Set(["srcdoc"]);
 
 /**
- * The standard HTML/DOM inline event-handler content attributes (HTML §8.1.7.2.1
- * `GlobalEventHandlers`, plus window/document-only handlers and a few
- * long-standing vendor ones). A blanket `/^on/i` prefix match is wrong here —
- * it would also swallow ordinary, non-event props like "once" or "online" —
- * so this is an exact-match set of the names browsers actually wire up as
- * `<tag onXxx="...">`. Anything not in this list is inert as far as script
- * execution goes, even if it happens to start with "on".
+ * Any attribute starting with "on" is treated as an inline event handler. An
+ * exact list of known handler names can't keep up: browsers keep adding new
+ * ones (onscrollsnapchange, oncommand, ...) and vendor ones
+ * (onwebkitanimationend fires with no user interaction), and every miss is
+ * script execution. The cost is that inert props like "once" are dropped too.
  */
-const EVENT_HANDLER_ATTRIBUTES = new Set([
-  "onabort", "onafterprint", "onanimationcancel", "onanimationend", "onanimationiteration", "onanimationstart",
-  "onauxclick", "onbeforeinput", "onbeforematch", "onbeforeprint", "onbeforetoggle", "onbeforeunload",
-  "onblur", "oncancel", "oncanplay", "oncanplaythrough", "onchange", "onclick", "onclose",
-  "oncontextlost", "oncontextmenu", "oncontextrestored", "oncopy", "oncuechange",
-  "oncut", "ondblclick", "ondrag", "ondragend", "ondragenter", "ondragleave", "ondragover",
-  "ondragstart", "ondrop", "ondurationchange", "onemptied", "onended", "onerror", "onfocus",
-  "onformdata", "ongotpointercapture", "onhashchange", "oninput", "oninvalid", "onkeydown",
-  "onkeypress", "onkeyup", "onlanguagechange", "onload", "onloadeddata", "onloadedmetadata",
-  "onloadstart", "onlostpointercapture", "onmessage", "onmessageerror", "onmousedown",
-  "onmouseenter", "onmouseleave", "onmousemove", "onmouseout", "onmouseover", "onmouseup",
-  "onmousewheel", "onoffline", "ononline", "onpagehide", "onpageshow", "onpaste", "onpause",
-  "onplay", "onplaying", "onpointercancel", "onpointerdown", "onpointerenter", "onpointerleave",
-  "onpointermove", "onpointerout", "onpointerover", "onpointerup", "onpointerrawupdate", "onpopstate",
-  "onprogress", "onratechange", "onrejectionhandled", "onreset", "onresize", "onscroll",
-  "onscrollend", "onsecuritypolicyviolation", "onseeked", "onseeking", "onselect", "onshow",
-  "onslotchange", "onstalled", "onstorage", "onsubmit", "onsuspend",
-  "ontimeupdate", "ontoggle", "ontouchcancel", "ontouchend", "ontouchmove", "ontouchstart",
-  "ontransitioncancel", "ontransitionend", "ontransitionrun", "ontransitionstart",
-  "onunhandledrejection", "onunload", "onvolumechange", "onwaiting", "onwheel",
-]);
+const EVENT_HANDLER_ATTRIBUTE = /^on/i;
 
 /**
  * Renders a props object as a string of `key="value"` HTML attributes. Skips
  * empty values (`undefined`/`null`/`false`); rejects keys that aren't valid
- * attribute names, known inline event-handler attributes (onclick, onerror,
- * ...), and script-bearing content attributes (`srcdoc`), since any of those
+ * attribute names, anything starting with "on" (onclick, onerror, ...), and script-bearing content attributes (`srcdoc`), since any of those
  * could otherwise let a hostile document break out of the tag or run script;
  * sanitizes known URL attributes (href/src/action/formaction) against
  * `javascript:`/`vbscript:`/`data:` schemes via sanitizeUrl(). This makes it
@@ -104,7 +83,7 @@ export function attributesToHtml(attributes: Record<string, unknown>): string {
   for (const [key, value] of Object.entries(attributes)) {
     if (value === undefined || value === null || value === false) continue;
     const lowerKey = key.toLowerCase();
-    if (!SAFE_ATTRIBUTE_NAME.test(key) || EVENT_HANDLER_ATTRIBUTES.has(lowerKey) || BLOCKED_ATTRIBUTES.has(lowerKey)) continue;
+    if (!SAFE_ATTRIBUTE_NAME.test(key) || EVENT_HANDLER_ATTRIBUTE.test(key) || BLOCKED_ATTRIBUTES.has(lowerKey)) continue;
     if (value === true) {
       parts.push(key);
       continue;

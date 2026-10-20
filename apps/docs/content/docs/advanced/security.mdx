@@ -57,8 +57,8 @@ import { attributesToHtml, escapeAttribute, escapeHtml, sanitizeUrl } from "eugi
 
 `sanitizeUrl` rejects `javascript:` and other script-bearing schemes — apply it to anything that
 becomes an `href`, `src`, or `action`. `attributesToHtml` does all of this for a whole props object
-at once: it rejects syntactically unsafe attribute names, drops known inline event-handler
-attributes (`onclick`, `onerror`, ...) outright, and runs `href`/`src`/`action`/`formaction`/
+at once: it rejects syntactically unsafe attribute names, drops every attribute starting with
+`on` (`onclick`, `onerror`, ...) outright, and runs `href`/`src`/`action`/`formaction`/
 `xlink:href` through `sanitizeUrl` automatically — safe to call directly on attacker-influenced
 node props. It
 only recognizes those specific URL-bearing attribute names, though; a custom prop meant to become a
