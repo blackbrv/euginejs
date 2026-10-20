@@ -63,10 +63,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@euginejs/core": "0.1.1",
-    "@euginejs/renderer": "0.1.2",
-    "@euginejs/renderer-server": "0.1.2",
-    "@euginejs/versioning": "0.1.2"
+    "@euginejs/core": "^0.1.1",
+    "@euginejs/renderer": "^0.1.2",
+    "@euginejs/renderer-server": "^0.1.2",
+    "@euginejs/versioning": "^0.1.2"
   },
   "devDependencies": {
     "jsdom": "^25.0.1"
