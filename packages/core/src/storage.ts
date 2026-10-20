@@ -155,7 +155,10 @@ export function createAutosave(
 
   function write(document: EugineDocument): Promise<void> {
     pending = null;
-    inFlight = Promise.resolve(save(document))
+    // Queued behind the previous write: two overlapping saves could otherwise
+    // land out of order, leaving the older document as the stored one.
+    inFlight = inFlight
+      .then(() => save(document))
       .then(() => options.onSave?.(document))
       .catch((error: unknown) => options.onError?.(error));
     return inFlight;

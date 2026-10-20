@@ -374,3 +374,22 @@ describe("every mutating editor method validates against the registry", () => {
     expect(() => editor.load(future)).toThrow(expect.objectContaining({ code: "EUGINE_MIGRATION_FAILED" }));
   });
 });
+
+describe("autosave ordering", () => {
+  it("never lets an older write finish after a newer one", async () => {
+    const editor = buildBasicEditor();
+    const finished: number[] = [];
+    let call = 0;
+    const save = (doc: { revision?: number }) => {
+      const n = ++call;
+      // The first write is slow, the second fast.
+      return new Promise<void>((resolve) => setTimeout(() => (finished.push(doc.revision ?? 0), resolve()), n === 1 ? 50 : 1));
+    };
+    const autosave = createAutosave(editor.store, save, { debounceMs: 0 });
+    editor.insert("text", editor.getDocument().rootId);
+    await new Promise((r) => setTimeout(r, 5));
+    editor.insert("text", editor.getDocument().rootId);
+    await autosave.stop();
+    expect(finished).toEqual([1, 2]);
+  });
+});
