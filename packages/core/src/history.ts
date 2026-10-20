@@ -49,8 +49,13 @@ export interface HistoryEvents {
   redo: { transaction: Transaction };
   batchStart: { label?: string };
   batchEnd: { transaction: Transaction };
-  /** A committed transaction, ready to be serialized and sent to other clients. */
-  commit: { transaction: Transaction; operations: EugineOperation[] | null };
+  /**
+   * A change this client made, ready to be sent to other clients: a newly
+   * committed transaction (`"execute"`), or an undo/redo of one. For an undo,
+   * `operations` is what the undo actually did — its inverse against the
+   * document at undo time — so peers converge on the same result.
+   */
+  commit: { transaction: Transaction; operations: EugineOperation[] | null; kind: "execute" | "undo" | "redo" };
 }
 
 export interface HistoryOptions {
@@ -66,6 +71,21 @@ export interface HistoryOptions {
    * layer would.
    */
   clientId?: string;
+}
+
+/**
+ * What undoing a transaction did, as operations: each command's recorded
+ * undo, in the reverse order they were undone. Null if any command can't
+ * report its undo.
+ */
+export function transactionToUndoOperations(transaction: Transaction): EugineOperation[] | null {
+  const operations: EugineOperation[] = [];
+  for (const command of [...transaction.commands].reverse()) {
+    const undone = command.toUndoOperations?.();
+    if (!undone) return null;
+    operations.push(...undone);
+  }
+  return operations;
 }
 
 /** Every operation in a transaction, or null if any command cannot serialize. */
@@ -169,7 +189,7 @@ export class History {
     this.redoStack = [];
     this.events.emit("afterChange", { transaction });
     this.events.emit("change", { transaction, kind });
-    this.events.emit("commit", { transaction, operations: transactionToOperations(transaction) });
+    this.events.emit("commit", { transaction, operations: transactionToOperations(transaction), kind });
   }
 
   /**
@@ -218,6 +238,7 @@ export class History {
     this.redoStack.push(transaction);
     this.events.emit("undo", { transaction });
     this.events.emit("change", { transaction, kind: "undo" });
+    this.events.emit("commit", { transaction, operations: transactionToUndoOperations(transaction), kind: "undo" });
     return true;
   }
 
@@ -232,6 +253,7 @@ export class History {
     this.undoStack.push(transaction);
     this.events.emit("redo", { transaction });
     this.events.emit("change", { transaction, kind: "redo" });
+    this.events.emit("commit", { transaction, operations: transactionToOperations(transaction), kind: "redo" });
     return true;
   }
 
@@ -290,7 +312,7 @@ export class History {
     return this.events.on("change", listener);
   }
 
-  /** Fires for every committed transaction, with its serializable operations. */
+  /** Fires for every change this client makes (new transaction, undo, or redo), with its serializable operations. */
   onCommit(listener: (payload: HistoryEvents["commit"]) => void): () => void {
     return this.events.on("commit", listener);
   }

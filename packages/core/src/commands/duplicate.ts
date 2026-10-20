@@ -12,6 +12,7 @@ export class DuplicateNodeCommand implements Command {
   private clone: { rootId: string; nodes: Record<string, EugineNode> } | null = null;
   private parentId: string | null = null;
   private index = 0;
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly id: string,
@@ -51,10 +52,12 @@ export class DuplicateNodeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     if (!this.clone) return;
     const document = store.get();
     if (!hasNode(document, this.clone.rootId)) return;
     store.set(removeNode(document, this.clone.rootId));
+    this.undone = [{ type: "remove", id: this.clone.rootId }];
   }
 
   toOperation(): EugineOperation | null {
@@ -66,5 +69,9 @@ export class DuplicateNodeCommand implements Command {
       parentId: this.parentId,
       index: this.index,
     };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }

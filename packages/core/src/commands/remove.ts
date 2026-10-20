@@ -10,6 +10,7 @@ export class RemoveNodeCommand implements Command {
   private snapshot: Record<string, EugineNode> | null = null;
   private parentId: string | null = null;
   private index = 0;
+  private undone: EugineOperation[] = [];
 
   constructor(private readonly id: string) {}
 
@@ -27,6 +28,7 @@ export class RemoveNodeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     if (!this.snapshot || !this.parentId) return;
     const document = store.get();
 
@@ -38,18 +40,24 @@ export class RemoveNodeCommand implements Command {
     // entirely because its container is gone would be the worse failure.
     const parentExists = hasNode(document, this.parentId);
     const parentId = parentExists ? this.parentId : document.rootId;
+    const index = parentExists ? this.index : undefined;
 
     store.set(
       restoreSubtree(document, this.snapshot, this.id, parentId, {
-        index: parentExists ? this.index : undefined,
+        index,
         // Restore only what is genuinely missing: any node in the snapshot
         // that is live again belongs to whoever put it there.
         overwriteExisting: false,
       }),
     );
+    this.undone = [{ type: "attach", nodes: this.snapshot, rootId: this.id, parentId, index }];
   }
 
   toOperation(): EugineOperation {
     return { type: "remove", id: this.id };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }

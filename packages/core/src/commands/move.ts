@@ -8,6 +8,7 @@ export class MoveNodeCommand implements Command {
   readonly name = "move";
   private previousParentId: string | null = null;
   private previousIndex = 0;
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly id: string,
@@ -28,6 +29,7 @@ export class MoveNodeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     if (!this.previousParentId) return;
     const document = store.get();
 
@@ -41,9 +43,14 @@ export class MoveNodeCommand implements Command {
     // moveNode clamps the index to the parent's current child count, so an
     // index recorded before a sibling was removed still lands sensibly.
     store.set(moveNode(document, this.id, parentId, { index: this.previousIndex }));
+    this.undone = [{ type: "move", id: this.id, parentId, index: this.previousIndex }];
   }
 
   toOperation(): EugineOperation {
     return { type: "move", id: this.id, parentId: this.newParentId, index: this.index };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }

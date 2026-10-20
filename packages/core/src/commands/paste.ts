@@ -12,6 +12,7 @@ import type { Command } from "./types.js";
  */
 export class PasteSubtreeCommand implements Command {
   readonly name = "paste";
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly nodes: Record<string, EugineNode>,
@@ -30,12 +31,18 @@ export class PasteSubtreeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     const document = store.get();
     if (!hasNode(document, this.rootId)) return;
     store.set(removeNode(document, this.rootId));
+    this.undone = [{ type: "remove", id: this.rootId }];
   }
 
   toOperation(): EugineOperation {
     return { type: "attach", nodes: this.nodes, rootId: this.rootId, parentId: this.parentId, index: this.index };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }

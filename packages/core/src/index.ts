@@ -86,7 +86,7 @@ export type { DropCheckContext } from "./registry.js";
 export * from "./commands/index.js";
 
 // History
-export { History, transactionToOperations } from "./history.js";
+export { History, transactionToOperations, transactionToUndoOperations } from "./history.js";
 export type { HistoryEntry, HistoryEvents, HistoryOptions, Transaction } from "./history.js";
 
 // Selection

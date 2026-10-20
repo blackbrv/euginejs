@@ -6,6 +6,7 @@ import type { Command } from "./types.js";
 
 export class InsertNodeCommand implements Command {
   readonly name = "insert";
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly node: EugineNode,
@@ -18,13 +19,19 @@ export class InsertNodeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     const document = store.get();
     // Another client already removed it. Nothing left to undo.
     if (!hasNode(document, this.node.id)) return;
     store.set(removeNode(document, this.node.id));
+    this.undone = [{ type: "remove", id: this.node.id }];
   }
 
   toOperation(): EugineOperation {
     return { type: "insert", node: this.node, parentId: this.parentId, index: this.index };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }

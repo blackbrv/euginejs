@@ -309,8 +309,8 @@ export function renderHistory(editor: Editor, container: HTMLElement): void {
  * localStorage as it goes.
  *
  * A new change is rendered from `onCommit` (which fires right after
- * `onChange`, and is the only one carrying the operations); undo/redo/clear
- * have no commit, so `onChange` renders those.
+ * `onChange`, and is the only one carrying the operations). Undo/redo also
+ * commit — for collaborators — but are rendered from `onChange` like clear.
  *
  * Subscribed to `history.onChange` rather than the editor's `document.change`
  * on purpose: the store emits `document.change` from *inside* `execute()`,
@@ -326,7 +326,8 @@ export function initHistoryPanel(editor: Editor, container: HTMLElement, onMove:
     onMove();
   };
   renderHistory(editor, container);
-  const offCommit = editor.history.onCommit(({ transaction, operations }) => {
+  const offCommit = editor.history.onCommit(({ transaction, operations, kind }) => {
+    if (kind !== "execute") return;
     const after = editor.getDocument();
     details.set(transaction.id!, describeTransaction(operations ?? [], settled ?? after, after));
     settled = after;

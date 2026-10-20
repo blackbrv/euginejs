@@ -65,8 +65,9 @@ editor.history.onChange(({ transaction, kind }) => {
   // kind: "execute" | "undo" | "redo"
 });
 
-// Committed transactions, with their serializable operations.
-editor.history.onCommit(({ operations }) => { /* ship them */ });
+// Every change this client makes — new transactions, undos and redos — with
+// its serializable operations. An undo carries the inverse it actually applied.
+editor.history.onCommit(({ operations, kind }) => { /* ship them */ });
 ```
 
 <Callout type="info">

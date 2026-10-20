@@ -528,6 +528,53 @@ describe("tree helpers used by the fixes", () => {
   });
 });
 
+describe("undo and redo reach other clients", () => {
+  it("keeps a peer in sync through a local undo and redo of every command", () => {
+    const a = makeEditor("a");
+    const b = makeEditor("b");
+    a.history.onCommit(({ operations }) => {
+      expect(operations).not.toBeNull();
+      const result = b.applyRemote(operations!, { clientId: "a" });
+      expect(result.dropped).toEqual([]);
+    });
+    const inSync = () => expect(b.getDocument().nodes).toEqual(a.getDocument().nodes);
+
+    const box = a.insert("box", "root");
+    const h = a.insert("heading", box, { props: { text: "Title" } });
+    a.updateProps(h, { text: "Edited", extra: 1 });
+    a.updateStyles(h, { color: "red" });
+    const copy = a.duplicate(h);
+    const wrapper = a.wrap(copy, "box");
+    a.unwrap(wrapper);
+    a.move(copy, "root", 0);
+    a.reorder("root", [box, copy]);
+    a.pasteSubtree(a.copySubtree(box), "root");
+    a.replace(h, { ...a.getNode(h), props: { text: "Replaced" } });
+    a.remove(box);
+    inSync();
+
+    let steps = 0;
+    while (a.history.undo()) {
+      inSync();
+      steps++;
+    }
+    expect(steps).toBe(12);
+    expect(Object.keys(b.getDocument().nodes)).toEqual(["root"]);
+
+    while (a.history.redo()) inSync();
+  });
+
+  it("tags each commit with what produced it", () => {
+    const editor = makeEditor("a");
+    const kinds: string[] = [];
+    editor.history.onCommit(({ kind }) => void kinds.push(kind));
+    editor.insert("box", "root");
+    editor.history.undo();
+    editor.history.redo();
+    expect(kinds).toEqual(["execute", "undo", "redo"]);
+  });
+});
+
 describe("applyRemote never throws on a race or a malformed operation", () => {
   it("drops a concurrent move that would now form a cycle", () => {
     const editor = makeEditor("a");

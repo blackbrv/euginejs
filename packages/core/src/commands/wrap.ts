@@ -7,6 +7,7 @@ import type { Command } from "./types.js";
 export class WrapNodeCommand implements Command {
   readonly name = "wrap";
   private wrapperId: string | null = null;
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly id: string,
@@ -29,10 +30,12 @@ export class WrapNodeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     if (!this.wrapperId) return;
     const document = store.get();
     if (!hasNode(document, this.wrapperId)) return;
     store.set(unwrapNode(document, this.wrapperId));
+    this.undone = [{ type: "unwrap", id: this.wrapperId }];
   }
 
   toOperation(): EugineOperation | null {
@@ -45,6 +48,10 @@ export class WrapNodeCommand implements Command {
       wrapper: this.options,
     };
   }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
+  }
 }
 
 export class UnwrapNodeCommand implements Command {
@@ -52,6 +59,7 @@ export class UnwrapNodeCommand implements Command {
   private wrapperType: string | null = null;
   private wrapperOptions: CreateNodeOptions = {};
   private childIds: string[] = [];
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly id: string,
@@ -77,6 +85,7 @@ export class UnwrapNodeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     if (!this.wrapperType) return;
     let document = store.get();
 
@@ -97,13 +106,23 @@ export class UnwrapNodeCommand implements Command {
       this.idFactory,
     );
     document = wrapped;
+    const { id: _id, ...wrapper } = this.wrapperOptions;
+    const undone: EugineOperation[] = [
+      { type: "wrap", id: first, wrapperId, wrapperType: this.wrapperType, wrapper },
+    ];
     surviving.slice(1).forEach((childId, offset) => {
       document = moveNode(document, childId, wrapperId, { index: offset + 1 });
+      undone.push({ type: "move", id: childId, parentId: wrapperId, index: offset + 1 });
     });
     store.set(document);
+    this.undone = undone;
   }
 
   toOperation(): EugineOperation {
     return { type: "unwrap", id: this.id };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }

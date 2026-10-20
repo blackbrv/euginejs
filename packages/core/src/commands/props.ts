@@ -21,16 +21,18 @@ interface InversePatch {
  * error, no conflict, no trace. A key-scoped inverse leaves keys it never
  * touched alone.
  */
-function undoPatch(inverse: InversePatch | null, id: string, store: DocumentStore, apply: typeof updateNodeProps): void {
-  if (!inverse) return;
+function undoPatch(inverse: InversePatch | null, id: string, store: DocumentStore, apply: typeof updateNodeProps): boolean {
+  if (!inverse) return false;
   const document = store.get();
-  if (!hasNode(document, id)) return;
+  if (!hasNode(document, id)) return false;
   store.set(apply(document, id, inverse.patch, { merge: true, unset: inverse.unset }));
+  return true;
 }
 
 export class UpdatePropsCommand implements Command {
   readonly name = "updateProps";
   private inverse: InversePatch | null = null;
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly id: string,
@@ -45,17 +47,25 @@ export class UpdatePropsCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
-    undoPatch(this.inverse, this.id, store, updateNodeProps);
+    this.undone =
+      undoPatch(this.inverse, this.id, store, updateNodeProps) && this.inverse
+        ? [{ type: "setProps", id: this.id, patch: this.inverse.patch as NodeProps, merge: true, unset: this.inverse.unset }]
+        : [];
   }
 
   toOperation(): EugineOperation {
     return { type: "setProps", id: this.id, patch: this.props, merge: this.merge };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }
 
 export class UpdateStylesCommand implements Command {
   readonly name = "updateStyles";
   private inverse: InversePatch | null = null;
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly id: string,
@@ -70,11 +80,18 @@ export class UpdateStylesCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
-    undoPatch(this.inverse, this.id, store, updateNodeStyles);
+    this.undone =
+      undoPatch(this.inverse, this.id, store, updateNodeStyles) && this.inverse
+        ? [{ type: "setStyles", id: this.id, patch: this.inverse.patch as NodeStyles, merge: true, unset: this.inverse.unset }]
+        : [];
   }
 
   toOperation(): EugineOperation {
     return { type: "setStyles", id: this.id, patch: this.styles, merge: this.merge };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }
 
@@ -88,6 +105,7 @@ export class UpdateStylesCommand implements Command {
 export class ReplaceNodeCommand implements Command {
   readonly name = "replace";
   private previous: EugineNode | null = null;
+  private undone: EugineOperation[] = [];
 
   constructor(
     private readonly id: string,
@@ -101,13 +119,19 @@ export class ReplaceNodeCommand implements Command {
   }
 
   undo(store: DocumentStore): void {
+    this.undone = [];
     if (!this.previous) return;
     const document = store.get();
     if (!hasNode(document, this.id)) return;
     store.set(replaceNode(document, this.id, this.previous));
+    this.undone = [{ type: "replace", id: this.id, node: this.previous }];
   }
 
   toOperation(): EugineOperation {
     return { type: "replace", id: this.id, node: this.next };
+  }
+
+  toUndoOperations(): EugineOperation[] {
+    return this.undone;
   }
 }

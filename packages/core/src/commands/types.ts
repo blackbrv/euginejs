@@ -31,4 +31,12 @@ export interface Command {
    * `transactionToOperations`).
    */
   toOperation?(): EugineOperation | null;
+  /**
+   * What the most recent `undo()` actually did, as operations — empty when it
+   * was a no-op (its target was already gone). Undo computes its inverse
+   * against the live document, so this is recorded during `undo()` rather
+   * than derived from `toOperation()`. Optional like `toOperation`; without
+   * it, undoing a transaction containing this command is not transmittable.
+   */
+  toUndoOperations?(): EugineOperation[];
 }
