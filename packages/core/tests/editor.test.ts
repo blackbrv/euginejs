@@ -366,4 +366,11 @@ describe("every mutating editor method validates against the registry", () => {
     const b = editor.insert("text", root);
     expect(() => editor.reorder(root, [a, a, b])).toThrow(expect.objectContaining({ code: "EUGINE_DOCUMENT_INVALID" }));
   });
+
+  it("refuses to load a document from a newer schema version", () => {
+    const editor = buildBasicEditor();
+    const serialized = editor.serialize();
+    const future = { ...serialized, document: { ...serialized.document, schemaVersion: 99 } };
+    expect(() => editor.load(future)).toThrow(expect.objectContaining({ code: "EUGINE_MIGRATION_FAILED" }));
+  });
 });

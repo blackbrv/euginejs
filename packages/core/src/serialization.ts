@@ -47,6 +47,16 @@ export class MigrationRegistry {
         throw new EugineError("EUGINE_MIGRATION_FAILED", "Migration chain exceeded 1000 steps; likely a registration cycle.");
       }
     }
+    // A document from a newer engine (or a migration that overshot) has no
+    // downgrade path; loading it as-is would misread fields this build
+    // doesn't know about.
+    if (current.schemaVersion !== targetVersion) {
+      throw new EugineError(
+        "EUGINE_MIGRATION_FAILED",
+        `Document schema version ${current.schemaVersion} is newer than the supported version ${targetVersion}.`,
+        { context: { from: current.schemaVersion, to: targetVersion } },
+      );
+    }
     return current;
   }
 }
