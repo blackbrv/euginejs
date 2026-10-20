@@ -349,4 +349,13 @@ describe("every mutating editor method validates against the registry", () => {
     expect(() => editor.remove(section)).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
     expect(editor.getNode(section)).toBeDefined();
   });
+
+  it("restores locked/hidden/editable when an unwrap is undone", () => {
+    const editor = buildBasicEditor();
+    const text = editor.insert("text", editor.getDocument().rootId);
+    const wrapper = editor.wrap(text, "section", { hidden: true, editable: false });
+    editor.unwrap(wrapper);
+    editor.history.undo();
+    expect(editor.getNode(wrapper)).toMatchObject({ hidden: true, editable: false });
+  });
 });

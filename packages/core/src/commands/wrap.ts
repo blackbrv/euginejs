@@ -79,6 +79,9 @@ export class UnwrapNodeCommand implements Command {
       className: node.className,
       metadata: node.metadata,
       customData: node.customData,
+      locked: node.locked,
+      editable: node.editable,
+      hidden: node.hidden,
     };
     this.childIds = node.children.slice();
     store.set(unwrapNode(document, this.id));
