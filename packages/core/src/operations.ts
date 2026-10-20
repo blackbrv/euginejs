@@ -1,4 +1,4 @@
-import { nodeNotFound } from "./errors.js";
+import { EugineError, invalidDocument, nodeNotFound } from "./errors.js";
 import {
   hasNode,
   insertNode,
@@ -67,7 +67,7 @@ export interface ApplyOperationsResult {
   document: EugineDocument;
   /** Operations that were applied, in order. */
   applied: EugineOperation[];
-  /** Operations skipped because their target no longer exists. */
+  /** Operations skipped: their target no longer exists, they were malformed, or (under "drop") the tree rejected them. */
   dropped: EugineOperation[];
 }
 
@@ -170,10 +170,26 @@ export function applyOperation(
   }
 }
 
+/** True if the operation would create a node keyed "__proto__" (see assertSafeNodeId in tree.ts). */
+function createsUnsafeId(operation: EugineOperation): boolean {
+  switch (operation.type) {
+    case "insert":
+      return operation.node.id === "__proto__";
+    case "attach":
+      return operation.rootId === "__proto__" || Object.keys(operation.nodes).includes("__proto__");
+    case "wrap":
+      return operation.wrapperId === "__proto__";
+    default:
+      return false;
+  }
+}
+
 /**
  * Applies a batch of operations in order, carrying the document forward
- * through each. With the default `"drop"` policy an operation whose target has
- * vanished is skipped and reported rather than aborting the batch.
+ * through each. With the default `"drop"` policy an operation that is malformed,
+ * whose target has vanished, or that the tree rejects (e.g. a concurrent move
+ * that would now form a cycle) is skipped and reported rather than aborting
+ * the batch.
  */
 export function applyOperations(
   document: EugineDocument,
@@ -186,7 +202,26 @@ export function applyOperations(
   const dropped: EugineOperation[] = [];
 
   for (const operation of operations) {
-    const next = applyOperation(current, operation, { policy });
+    let next: EugineDocument | null;
+    if (!isEugineOperation(operation)) {
+      if (policy === "throw") throw invalidDocument("Malformed operation.", { operation });
+      next = null;
+    } else if (createsUnsafeId(operation)) {
+      // Not a race: a hostile payload. Surface it under every policy so the
+      // host can see it and disconnect the sender.
+      throw invalidDocument("Operation creates a node with a reserved id.", { operation });
+    } else {
+      try {
+        next = applyOperation(current, operation, { policy });
+      } catch (error) {
+        // Under "drop", any operation the tree rejects is a race with a local
+        // edit (a concurrent move that would now form a cycle, a remove of a
+        // node that became root-adjacent, ...), not a reason to stop the
+        // whole batch and the sync loop behind it.
+        if (policy === "throw" || !(error instanceof EugineError)) throw error;
+        next = null;
+      }
+    }
     if (next === null) {
       dropped.push(operation);
       continue;
@@ -198,22 +233,62 @@ export function applyOperations(
   return { document: current, applied, dropped };
 }
 
-/** Runtime guard for operations arriving from an untrusted transport. */
+const isString = (value: unknown): value is string => typeof value === "string";
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const isOptionalIndex = (value: unknown): boolean => value === undefined || Number.isInteger(value);
+const isStringArray = (value: unknown): boolean => Array.isArray(value) && value.every(isString);
+const isOptionalStringArray = (value: unknown): boolean => value === undefined || isStringArray(value);
+
+function isNodeShape(value: unknown): value is EugineNode {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.type) &&
+    isRecord(value.props) &&
+    isStringArray(value.children) &&
+    (value.parent === null || isString(value.parent))
+  );
+}
+
+/**
+ * Runtime guard for operations arriving from an untrusted transport. Checks
+ * every field the operation's type needs, so a malformed op is rejected here
+ * rather than crashing a tree function with a raw TypeError.
+ */
 export function isEugineOperation(value: unknown): value is EugineOperation {
-  if (typeof value !== "object" || value === null) return false;
-  const op = value as { type?: unknown };
+  if (!isRecord(value)) return false;
+  const op = value;
   switch (op.type) {
     case "insert":
+      return isNodeShape(op.node) && isString(op.parentId) && isOptionalIndex(op.index);
     case "attach":
+      return (
+        isRecord(op.nodes) &&
+        Object.values(op.nodes).every(isNodeShape) &&
+        isString(op.rootId) &&
+        isString(op.parentId) &&
+        isOptionalIndex(op.index)
+      );
     case "remove":
+    case "unwrap":
+      return isString(op.id);
     case "move":
+      return isString(op.id) && isString(op.parentId) && isOptionalIndex(op.index);
     case "setProps":
     case "setStyles":
+      return isString(op.id) && isRecord(op.patch) && typeof op.merge === "boolean" && isOptionalStringArray(op.unset);
     case "replace":
+      return isString(op.id) && isNodeShape(op.node);
     case "reorder":
+      return isString(op.parentId) && isStringArray(op.order);
     case "wrap":
-    case "unwrap":
-      return true;
+      return (
+        isString(op.id) &&
+        isString(op.wrapperId) &&
+        isString(op.wrapperType) &&
+        (op.wrapper === undefined || isRecord(op.wrapper))
+      );
     default:
       return false;
   }

@@ -528,6 +528,34 @@ describe("tree helpers used by the fixes", () => {
   });
 });
 
+describe("applyRemote never throws on a race or a malformed operation", () => {
+  it("drops a concurrent move that would now form a cycle", () => {
+    const editor = makeEditor("a");
+    const x = editor.insert("box", "root", { id: "x" });
+    const y = editor.insert("box", "root", { id: "y" });
+    editor.move(x, y);
+    // B moved y into x at the same time.
+    const result = editor.applyRemote([{ type: "move", id: y, parentId: x }], { clientId: "b" });
+    expect(result.dropped).toHaveLength(1);
+    validateDocument(editor.getDocument());
+  });
+
+  it("drops a remote remove of the root and a malformed op, and keeps applying the rest", () => {
+    const editor = makeEditor("a");
+    const result = editor.applyRemote(
+      [
+        { type: "remove", id: "root" },
+        { type: "insert" } as unknown as EugineOperation,
+        { type: "insert", node: createNode("box", { id: "ok" }), parentId: "root" },
+      ],
+      { clientId: "b" },
+    );
+    expect(result.dropped).toHaveLength(2);
+    expect(result.applied).toHaveLength(1);
+    expect(hasNode(editor.getDocument(), "ok")).toBe(true);
+  });
+});
+
 describe("validateDocument rejects structures every tree-walker would loop on", () => {
   it("rejects an island of two nodes naming each other as parent and child", () => {
     const doc = createEmptyDocument();
