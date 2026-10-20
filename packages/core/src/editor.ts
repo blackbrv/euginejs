@@ -41,6 +41,7 @@ import type {
   NodeStyles,
   SerializedDocument,
 } from "./types.js";
+import { documentRevision } from "./types.js";
 
 export interface EditorEventMap {
   "editor.ready": Record<string, never>;
@@ -129,6 +130,8 @@ export class Editor {
   private readonly plugins: PluginManager<Editor>;
   private readonly disposers: Array<() => void> = [];
   private readonly maxDepth: number | undefined;
+  /** The revision last loaded from or saved to storage — see getBaseRevision(). */
+  private baseRevision: number;
 
   constructor(options: CreateEditorOptions = {}) {
     this.migrations = options.migrations ?? new MigrationRegistry();
@@ -152,6 +155,7 @@ export class Editor {
     }
 
     this.store = new DocumentStore(initialDocument, { maxDepth: options.maxDepth });
+    this.baseRevision = this.store.getRevision();
     this.history = new History(this.store, { clientId: options.clientId });
     this.plugins = new PluginManager(this);
 
@@ -385,19 +389,31 @@ export class Editor {
   }
 
   /**
+   * The revision this client's edits are based on: the one it last loaded or
+   * successfully saved. This is what `save()` sends as `baseRevision`.
+   *
+   * Not `store.getRevision()` — that counter advances on every local edit, so
+   * a client that started from an old copy but made more edits would claim a
+   * revision ahead of the stored one and silently overwrite it.
+   */
+  getBaseRevision(): number {
+    return this.baseRevision;
+  }
+
+  /**
    * Serializes and persists through the configured storage adapter, tagging
-   * the write with the revision it was based on so the adapter can reject it
-   * if the stored document has moved on.
+   * the write with the revision it was based on (getBaseRevision()) so the
+   * adapter can reject it if the stored document has moved on.
    *
    * Prefer this over `editor.storage.save(editor.serialize())` — forgetting
    * the baseRevision is what makes two clients editing one page silently
    * last-write-wins.
    */
   async save(options: Omit<SaveOptions, "baseRevision"> = {}): Promise<SaveResult> {
-    return await this.storage.save(this.serialize(), {
-      ...options,
-      baseRevision: this.store.getRevision(),
-    });
+    const serialized = this.serialize();
+    const result = await this.storage.save(serialized, { ...options, baseRevision: this.baseRevision });
+    if (result.ok) this.baseRevision = result.revision ?? documentRevision(serialized.document);
+    return result;
   }
 
   load(serialized: SerializedDocument, options: LoadDocumentOptions = {}): void {
@@ -411,6 +427,7 @@ export class Editor {
     // document (including any maxDepth override), so skip the redundant second
     // validation that store.set() would otherwise run.
     this.store.set(document, { bumpRevision: false, validate: false });
+    this.baseRevision = this.store.getRevision();
     this.history.clear();
     this.selection.clear();
     this.events.emit("document.load", { document });

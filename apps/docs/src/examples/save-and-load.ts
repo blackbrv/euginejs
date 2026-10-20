@@ -33,7 +33,7 @@ export async function publish(): Promise<void> {
 
 // #region revision
 // The value editor.save() sends as baseRevision.
-const base = editor.store.getRevision();
+const base = editor.getBaseRevision();
 // #endregion revision
 
 export { editor, snapshot, base };

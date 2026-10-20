@@ -219,6 +219,7 @@ describe("createEditor", () => {
     // A second client saves work of their own on top of it.
     const other = buildBasicEditor();
     other.storage.use(editor.storage);
+    other.load((await other.storage.load())!);
     other.insert("text", other.getDocument().rootId);
     other.insert("text", other.getDocument().rootId);
     expect((await other.save()).ok).toBe(true);
@@ -230,6 +231,28 @@ describe("createEditor", () => {
       expect(conflicted.reason).toBe("conflict");
       expect(conflicted.current).toBeDefined();
     }
+  });
+
+  it("rejects a stale save even when the stale client made more edits", async () => {
+    const adapter = new MemoryStorageAdapter();
+    const a = buildBasicEditor();
+    const b = buildBasicEditor();
+    a.storage.use(adapter);
+    b.storage.use(adapter);
+
+    a.insert("text", a.getDocument().rootId);
+    expect((await a.save()).ok).toBe(true);
+
+    // B started from the same empty document and never saw A's save; its
+    // local edit counter (2) is ahead of the stored revision (1).
+    b.insert("text", b.getDocument().rootId);
+    b.insert("text", b.getDocument().rootId);
+    expect((await b.save()).ok).toBe(false);
+
+    // A keeps saving on top of its own write.
+    a.insert("text", a.getDocument().rootId);
+    expect((await a.save()).ok).toBe(true);
+    expect(a.getBaseRevision()).toBe(a.store.getRevision());
   });
 
   it("throws a clear error when no storage adapter is configured", async () => {

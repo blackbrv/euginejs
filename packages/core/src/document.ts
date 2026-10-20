@@ -82,7 +82,7 @@ export class DocumentStore {
     }
   }
 
-  /** The current document's revision — the value to send as a save's baseRevision. */
+  /** The current document's revision. Advances on every write; a save's baseRevision is Editor.getBaseRevision(). */
   getRevision(): number {
     return documentRevision(this.current);
   }

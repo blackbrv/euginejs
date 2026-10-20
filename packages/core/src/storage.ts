@@ -6,8 +6,8 @@ export interface SaveOptions {
   /** Which document to write, for adapters that hold more than one. */
   id?: string;
   /**
-   * The revision this save is based on — `editor.store.getRevision()` at the
-   * moment the document was serialized.
+   * The revision this save is based on — the one the client last loaded or
+   * saved (`editor.getBaseRevision()`), not its current local revision.
    *
    * An adapter that honours it rejects the write when the stored document has
    * moved on since, turning the single worst failure in a shared editor —
