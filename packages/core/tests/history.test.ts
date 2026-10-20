@@ -36,6 +36,22 @@ describe("History", () => {
     expect(history.canRedo()).toBe(true);
   });
 
+  it("rolls back a transaction that throws part-way instead of leaving its edits un-undoable", () => {
+    const store = new DocumentStore(createEmptyDocument());
+    const history = new History(store);
+    const root = store.get().rootId;
+
+    expect(() =>
+      history.transaction(() => {
+        history.execute(new InsertNodeCommand(createNode("text", { id: "t" }), root));
+        throw new Error("boom");
+      }),
+    ).toThrow("boom");
+
+    expect(store.get().nodes.t).toBeUndefined();
+    expect(history.canUndo()).toBe(false);
+  });
+
   it("groups a transaction of multiple commands into a single undo step", () => {
     let doc = createEmptyDocument();
     doc = insertNode(doc, createNode("section", { id: "a" }), doc.rootId);

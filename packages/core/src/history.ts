@@ -130,12 +130,18 @@ export class History {
     this.commit({ commands: [command], origin: this.localOrigin() }, "execute");
   }
 
-  /** Groups every command executed inside `fn` into a single undo/redo step. */
+  /**
+   * Groups every command executed inside `fn` into a single undo/redo step.
+   * All or nothing: if `fn` throws, the document is rolled back to where the
+   * transaction started and the error is rethrown. Otherwise the commands that
+   * ran before the throw would stay applied with no undo entry to revert them.
+   */
   transaction<T>(fn: () => T, label?: string): T {
     if (this.activeTransaction) {
       // Nested transactions flatten into the outer, already-open one.
       return fn();
     }
+    const before = this.store.get();
     this.activeTransaction = { commands: [], label, origin: this.localOrigin() };
     this.events.emit("batchStart", { label });
     try {
@@ -146,7 +152,9 @@ export class History {
       this.events.emit("batchEnd", { transaction: tx });
       return result;
     } catch (error) {
+      const executed = this.activeTransaction?.commands.length ?? 0;
       this.activeTransaction = null;
+      if (executed > 0) this.store.set(before, { validate: false });
       throw error;
     }
   }
