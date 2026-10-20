@@ -128,7 +128,7 @@ describe("renderToPage", () => {
     const registry = buildRegistry();
 
     const html = renderToPage(doc, { registry, onMissingComponent: "placeholder" });
-    expect(html).toContain("eugine:unknown-component");
+    expect(html).toContain('data-eugine-type="mystery"');
 
     expect(() => renderToPage(doc, { registry, onMissingComponent: "throw" })).toThrow();
   });

@@ -40,6 +40,7 @@ const page = renderToPage(document, {
 Every node's `type` is resolved strictly against the `ComponentRegistry` you pass in — this
 package **never** dynamically imports or executes anything named inside a document. Unknown
 component types are handled via `onMissingComponent: "throw" | "omit" | "placeholder"` (default:
-`"placeholder"`, which renders an inert, escaped HTML comment). Use the exported `escapeHtml`,
+`"placeholder"`, which renders an inert `<div data-eugine-type="...">` wrapper around the node's
+children, matching the DOM renderer). Use the exported `escapeHtml`,
 `escapeAttribute` and `sanitizeUrl` helpers when writing your own component renderers to avoid
 script injection from document-provided text/URLs.

@@ -66,8 +66,8 @@ props, and sanitize it the same way you would any other URL prop (see
 
 Every node's `type` resolves against the `ComponentRegistry` you pass in — the same registry, the
 same resolution, in both functions. A `type` with no matching registration is handled by
-`onMissingComponent` (`"throw" | "omit" | "placeholder"`, default `"placeholder"` — an inert,
-escaped HTML comment). There is no way for a document to name a component that gets imported or
+`onMissingComponent` (`"throw" | "omit" | "placeholder"`, default `"placeholder"` — an inert
+`<div data-eugine-type="...">` wrapper that keeps the node's children, as the DOM renderer does). There is no way for a document to name a component that gets imported or
 executed; an unrecognized type is always inert data, never code.
 
 ## Integrating into a server
@@ -83,5 +83,5 @@ framework that already owns the surrounding HTML) — see [Server Rendering](/do
 - **No pagination, sitemap, or multi-document batching.** `renderToPage()`/`renderToString()` each
   render one `EugineDocument`; generating a whole site is a loop your own code writes.
 - **Unsupported nodes never fail silently by default.** `onMissingComponent` defaults to
-  `"placeholder"`, not `"omit"` — an unregistered type shows up as a visible HTML comment in the
-  output unless you choose otherwise.
+  `"placeholder"`, not `"omit"` — an unregistered type shows up as a `data-eugine-type` wrapper in
+  the output unless you choose otherwise.

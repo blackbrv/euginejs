@@ -63,7 +63,9 @@ export function renderToString<TData = unknown>(
           return "";
         case "placeholder":
         default:
-          return `<!-- eugine:unknown-component type="${escapeHtml(node.type)}" id="${escapeHtml(node.id)}" -->`;
+          // Same structural wrapper the DOM renderer builds, children kept: one
+          // unknown container must not blank a whole section of the page.
+          return renderFallback(node, childrenHtml);
       }
     }
 

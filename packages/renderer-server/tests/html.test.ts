@@ -44,7 +44,7 @@ describe("renderToString", () => {
   it("never dynamically executes a document-provided module reference", () => {
     // Simulates a hostile document trying to name an arbitrary module/path as its type,
     // hoping the renderer will `import()` it. It must instead be treated as inert data:
-    // rendered as a harmless, escaped placeholder comment — never imported or executed.
+    // rendered as a harmless, escaped placeholder wrapper — never imported or executed.
     let doc = createEmptyDocument();
     doc = insertNode(
       doc,
@@ -57,7 +57,7 @@ describe("renderToString", () => {
     // The malicious type string is intentionally NOT registered.
 
     const html = renderToString(doc, { registry, onMissingComponent: "placeholder" });
-    expect(html).toContain("eugine:unknown-component");
+    expect(html).toContain('data-eugine-id="evil"');
     // The attempted comment-breakout / script tag must come out HTML-escaped, not raw.
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
@@ -79,6 +79,19 @@ describe("renderToString", () => {
     const a = { ...createNode("box", { id: "a" }), parent: doc.rootId, children: [doc.rootId] };
     expect(() => renderToString({ ...doc, nodes: { [doc.rootId]: root, a } }, { registry: new ComponentRegistry() })).toThrow(
       expect.objectContaining({ code: "EUGINE_DOCUMENT_INVALID" }),
+    );
+  });
+
+  it("keeps the children of an unregistered component, like the DOM renderer", () => {
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("mystery", { id: "m" }), doc.rootId);
+    doc = insertNode(doc, createNode("text", { id: "t", props: { content: "kept" } }), "m");
+    const registry = new ComponentRegistry<HtmlComponentRenderer>();
+    registry.register({ type: "root", render: (_p, c) => c });
+    registry.register({ type: "text", render: (p) => `<p>${escapeHtml(p.content)}</p>` });
+
+    expect(renderToString(doc, { registry })).toBe(
+      '<div data-eugine-id="m" data-eugine-type="mystery"><p>kept</p></div>',
     );
   });
 
