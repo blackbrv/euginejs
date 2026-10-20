@@ -10,24 +10,44 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./renderer": {
-      "types": "./dist/renderer.d.ts",
-      "import": "./dist/renderer.js",
-      "require": "./dist/renderer.cjs"
+      "import": {
+        "types": "./dist/renderer.d.ts",
+        "default": "./dist/renderer.js"
+      },
+      "require": {
+        "types": "./dist/renderer.d.cts",
+        "default": "./dist/renderer.cjs"
+      }
     },
     "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js",
-      "require": "./dist/server.cjs"
+      "import": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.js"
+      },
+      "require": {
+        "types": "./dist/server.d.cts",
+        "default": "./dist/server.cjs"
+      }
     },
     "./versioning": {
-      "types": "./dist/versioning.d.ts",
-      "import": "./dist/versioning.js",
-      "require": "./dist/versioning.cjs"
+      "import": {
+        "types": "./dist/versioning.d.ts",
+        "default": "./dist/versioning.js"
+      },
+      "require": {
+        "types": "./dist/versioning.d.cts",
+        "default": "./dist/versioning.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
