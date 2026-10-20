@@ -52,7 +52,8 @@ Use `canAcceptChild()` to drive drag affordances, and let `insert()`/`move()` do
 
 Three flags on a node change how the editor and renderers treat it:
 
-- **`locked`** — cannot be deleted, moved, or retyped by commands. `remove()` and `move()` throw.
+- **`locked`** — cannot be deleted, moved, or retyped by commands. `remove()` (including of an
+  ancestor), `unwrap()`, `move()`, and a type-changing `replace()` throw.
 - **`hidden`** — retained in the document, excluded from render output.
 - **`editable`** — content may be edited in place. Defaults to true.
 

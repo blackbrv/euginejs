@@ -277,3 +277,76 @@ describe("createEditor", () => {
     vi.useRealTimers();
   });
 });
+
+describe("every mutating editor method validates against the registry", () => {
+  it("duplicate respects maxChildren", () => {
+    const editor = buildBasicEditor();
+    const grid = editor.insert("grid", editor.getDocument().rootId);
+    const card = editor.insert("card", grid);
+    editor.insert("card", grid);
+    expect(() => editor.duplicate(card)).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
+  });
+
+  it("pasteSubtree respects accepts and rejects unregistered types inside the snapshot", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const text = editor.insert("text", root);
+    const section = editor.insert("section", root);
+    expect(() => editor.pasteSubtree(editor.copySubtree(section), text)).toThrow(
+      expect.objectContaining({ code: "EUGINE_INVALID_DROP" }),
+    );
+
+    const snapshot = editor.copySubtree(section);
+    const foreign = { ...snapshot, nodes: { ...snapshot.nodes, [section]: { ...snapshot.nodes[section]!, type: "alien" } } };
+    expect(() => editor.pasteSubtree(foreign, root)).toThrow(
+      expect.objectContaining({ code: "EUGINE_COMPONENT_NOT_REGISTERED" }),
+    );
+  });
+
+  it("wrap rejects an unregistered wrapper and a wrapper that won't accept the node", () => {
+    const editor = buildBasicEditor();
+    const text = editor.insert("text", editor.getDocument().rootId);
+    expect(() => editor.wrap(text, "alien")).toThrow(expect.objectContaining({ code: "EUGINE_COMPONENT_NOT_REGISTERED" }));
+    expect(() => editor.wrap(text, "grid")).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
+  });
+
+  it("unwrap rejects children the parent won't accept, and locked wrappers", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+
+    // grid only accepts cards: unwrapping a card that holds text would put text in it.
+    const grid = editor.insert("grid", root);
+    const card = editor.insert("card", grid);
+    editor.insert("text", card);
+    expect(() => editor.unwrap(card)).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
+
+    const text = editor.insert("text", root);
+    const locked = editor.wrap(text, "section", { locked: true });
+    expect(() => editor.unwrap(locked)).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
+  });
+
+  it("replace cannot change children, or the type of a locked node", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const section = editor.insert("section", root, { locked: true });
+    editor.insert("text", section);
+    const node = editor.getNode(section);
+    expect(() => editor.replace(section, { ...node, children: [] })).toThrow(
+      expect.objectContaining({ code: "EUGINE_DOCUMENT_INVALID" }),
+    );
+    expect(() => editor.replace(section, { ...node, type: "card" })).toThrow(
+      expect.objectContaining({ code: "EUGINE_INVALID_DROP" }),
+    );
+    // Toggling a flag on a locked node is still allowed.
+    editor.replace(section, { ...node, locked: false });
+    expect(editor.getNode(section).locked).toBe(false);
+  });
+
+  it("refuses to remove an ancestor of a locked node", () => {
+    const editor = buildBasicEditor();
+    const section = editor.insert("section", editor.getDocument().rootId);
+    editor.insert("text", section, { locked: true });
+    expect(() => editor.remove(section)).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
+    expect(editor.getNode(section)).toBeDefined();
+  });
+});

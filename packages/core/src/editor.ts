@@ -13,7 +13,7 @@ import {
   WrapNodeCommand,
 } from "./commands/index.js";
 import { DocumentStore, type ChangeOrigin } from "./document.js";
-import { EugineError } from "./errors.js";
+import { EugineError, invalidDocument, invalidDrop, nodeNotFound } from "./errors.js";
 import { EventBus } from "./events.js";
 import { History, type Transaction } from "./history.js";
 import { createId } from "./id.js";
@@ -272,7 +272,19 @@ export class Editor {
     this.events.emit("node.move", { id, parentId });
   }
 
+  /** Throws EUGINE_INVALID_DROP unless `parentId` may hold one more `childType` (on top of `currentChildCount`). */
+  private assertCanPlace(parentId: string, childType: string, currentChildCount?: number): void {
+    const parent = this.getNode(parentId);
+    this.registry.assertCanAcceptChild({
+      parentType: parent.type,
+      childType,
+      currentChildCount: currentChildCount ?? parent.children.length,
+    });
+  }
+
   duplicate(id: string): string {
+    const node = this.getNode(id);
+    if (node.parent) this.assertCanPlace(node.parent, node.type);
     const command = new DuplicateNodeCommand(id, this.idFactory);
     this.history.execute(command);
     const newId = command.duplicatedId;
@@ -297,6 +309,14 @@ export class Editor {
    * the original or with earlier pastes. One undo step.
    */
   pasteSubtree(snapshot: SubtreeSnapshot, parentId: string, index?: number): string {
+    // A snapshot can come from another document (or another app): every type
+    // in it must be registered here, not just the root's.
+    for (const node of Object.values(snapshot.nodes)) this.registry.get(node.type);
+    const root = Object.prototype.hasOwnProperty.call(snapshot.nodes, snapshot.rootId)
+      ? snapshot.nodes[snapshot.rootId]!
+      : undefined;
+    if (!root) throw nodeNotFound(snapshot.rootId);
+    this.assertCanPlace(parentId, root.type);
     const clone = cloneSubtreeSnapshot(snapshot.nodes, snapshot.rootId, this.idFactory);
     this.history.execute(new PasteSubtreeCommand(clone.nodes, clone.rootId, parentId, index));
     this.events.emit("node.create", { node: this.getNode(clone.rootId) });
@@ -313,7 +333,29 @@ export class Editor {
     this.events.emit("node.update", { id });
   }
 
+  /**
+   * Replaces a node's data (props, styles, flags, type). Children are
+   * structure, not data: `next.children` must match the current list —
+   * change them with insert/move/remove/reorder, which keep parent pointers
+   * and undo consistent.
+   */
   replace(id: string, next: EugineNode): void {
+    const current = this.getNode(id);
+    const sameChildren =
+      next.children.length === current.children.length && next.children.every((c, i) => c === current.children[i]);
+    if (!sameChildren) {
+      throw invalidDocument(`replace() cannot change the children of "${id}"; use insert/move/remove/reorder.`, { id });
+    }
+    if (next.type !== current.type) {
+      if (current.locked) {
+        throw invalidDrop(`Node "${id}" is locked and its type cannot be changed.`, { id });
+      }
+      this.registry.get(next.type);
+      if (current.parent) this.assertCanPlace(current.parent, next.type, this.getNode(current.parent).children.length - 1);
+      current.children.forEach((childId, i) => {
+        this.registry.assertCanAcceptChild({ parentType: next.type, childType: this.getNode(childId).type, currentChildCount: i });
+      });
+    }
     this.history.execute(new ReplaceNodeCommand(id, next));
     this.events.emit("node.update", { id });
   }
@@ -324,12 +366,24 @@ export class Editor {
   }
 
   wrap(id: string, wrapperType: string, options: CreateNodeOptions = {}): string {
+    const node = this.getNode(id);
+    this.registry.get(wrapperType);
+    // The wrapper takes the node's slot, so the parent's count doesn't grow.
+    if (node.parent) this.assertCanPlace(node.parent, wrapperType, this.getNode(node.parent).children.length - 1);
+    this.registry.assertCanAcceptChild({ parentType: wrapperType, childType: node.type, currentChildCount: 0 });
     const command = new WrapNodeCommand(id, wrapperType, options, this.idFactory);
     this.history.execute(command);
     return command.createdWrapperId ?? id;
   }
 
   unwrap(id: string): void {
+    const node = this.getNode(id);
+    if (node.locked) throw invalidDrop(`Node "${id}" is locked and cannot be removed.`, { id });
+    if (node.parent) {
+      // The children take the wrapper's slot, one after another.
+      const base = this.getNode(node.parent).children.length - 1;
+      node.children.forEach((childId, i) => this.assertCanPlace(node.parent!, this.getNode(childId).type, base + i));
+    }
     this.history.execute(new UnwrapNodeCommand(id, this.idFactory));
   }
 

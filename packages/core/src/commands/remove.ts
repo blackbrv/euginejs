@@ -1,5 +1,5 @@
 import { invalidDrop } from "../errors.js";
-import { captureSubtree, getNode, hasNode, removeNode, restoreSubtree } from "../tree.js";
+import { captureSubtree, getNode, hasNode, removeNode, restoreSubtree, subtreeIds } from "../tree.js";
 import type { EugineNode } from "../types.js";
 import type { DocumentStore } from "../document.js";
 import type { EugineOperation } from "../operations.js";
@@ -17,8 +17,10 @@ export class RemoveNodeCommand implements Command {
   execute(store: DocumentStore): void {
     const document = store.get();
     const node = getNode(document, this.id);
-    if (node.locked) {
-      throw invalidDrop(`Node "${this.id}" is locked and cannot be removed.`, { id: this.id });
+    // Removing an ancestor removes a locked descendant just as surely.
+    const locked = subtreeIds(document, this.id).find((id) => getNode(document, id).locked);
+    if (locked !== undefined) {
+      throw invalidDrop(`Node "${locked}" is locked and cannot be removed.`, { id: locked });
     }
     const parent = node.parent ? getNode(document, node.parent) : null;
     this.snapshot = captureSubtree(document, this.id);
