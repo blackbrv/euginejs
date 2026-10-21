@@ -55,6 +55,7 @@ export function createPokemonDataPlugin(onActivity: (line: string) => void): Pok
   let editor: Editor | null = null;
   let renderer: DomRenderer | null = null;
   let unsubscribeNodeCreate: (() => void) | null = null;
+  let unsubscribeNodeDelete: (() => void) | null = null;
   let unsubscribeDocumentLoad: (() => void) | null = null;
 
   const notify = (nodeId: string) => {
@@ -201,12 +202,19 @@ export function createPokemonDataPlugin(onActivity: (line: string) => void): Pok
       unsubscribeNodeCreate = e.events.on("node.create", ({ node }) => {
         if (isPokemonNode(node)) requestInitialFetch(node.id);
       });
+      // Fires for every removed node (descendants and undone inserts included),
+      // so a deleted node's fetched items go with it; its callback is removed
+      // by the canvas renderer's onCleanup. If an undo brings the node back,
+      // node.create refetches.
+      unsubscribeNodeDelete = e.events.on("node.delete", ({ id }) => states.delete(id));
       unsubscribeDocumentLoad = e.events.on("document.load", () => scan());
     },
 
     destroy() {
       unsubscribeNodeCreate?.();
       unsubscribeNodeCreate = null;
+      unsubscribeNodeDelete?.();
+      unsubscribeNodeDelete = null;
       unsubscribeDocumentLoad?.();
       unsubscribeDocumentLoad = null;
       states.clear();

@@ -243,16 +243,15 @@ function buildRegistry(
 
       // Rebuild the track's contents once a fetch resolves — the same
       // bypass-history-and-mutate-the-live-element pattern `previewStyle`
-      // uses (see lib/panels.ts). subscribe() replaces this node's previous
-      // callback, so re-renders don't pile up listeners. A removed node keeps
-      // its one slot: the DOM renderer has no unmount hook to clear it.
-      pokemonPlugin.subscribe(ctx.node.id, () => {
+      // uses (see lib/panels.ts). onCleanup unsubscribes when the renderer
+      // replaces this element or the node leaves the document.
+      ctx.onCleanup(pokemonPlugin.subscribe(ctx.node.id, () => {
         const host = pokemonPlugin.getRenderer()?.getElement(ctx.node.id);
         if (!(host instanceof HTMLElement)) return;
         const hostWrap = host.querySelector<HTMLElement>(".ks-pokemon-track");
         if (!hostWrap) return;
         fillAmbient(hostWrap, pokemonPlugin.getState(ctx.node.id));
-      });
+      }));
 
       makeInteractive(el, ctx.node, editor, onSelect, onContextMenu);
       return el;
@@ -311,7 +310,7 @@ function buildRegistry(
       };
       refreshFooter();
 
-      pokemonPlugin.subscribe(ctx.node.id, () => {
+      ctx.onCleanup(pokemonPlugin.subscribe(ctx.node.id, () => {
         const host = pokemonPlugin.getRenderer()?.getElement(ctx.node.id);
         if (!(host instanceof HTMLElement)) return;
         const hostInner = host.querySelector<HTMLElement>(".ks-pokemon-grid-inner");
@@ -319,7 +318,7 @@ function buildRegistry(
           fillInner(pokemonPlugin.getState(ctx.node.id));
         }
         refreshFooter();
-      });
+      }));
 
       makeInteractive(el, ctx.node, editor, onSelect, onContextMenu);
       return el;
