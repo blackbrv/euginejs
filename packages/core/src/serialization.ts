@@ -2,7 +2,7 @@ import { EugineError } from "./errors.js";
 import { validateDocument, type ValidateDocumentOptions } from "./tree.js";
 import { CURRENT_SCHEMA_VERSION, type EugineDocument, type SerializedDocument } from "./types.js";
 
-const ENGINE_VERSION = "0.1.0";
+const ENGINE_VERSION = "0.2.0";
 
 /** Wraps a document in the canonical, versioned envelope used for persistence. */
 export function serializeDocument(document: EugineDocument, options: ValidateDocumentOptions = {}): SerializedDocument {
