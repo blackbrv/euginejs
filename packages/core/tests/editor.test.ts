@@ -393,3 +393,32 @@ describe("autosave ordering", () => {
     expect(finished).toEqual([1, 2]);
   });
 });
+
+describe("canInsert / canMove", () => {
+  it("answers exactly what insert() and move() would do", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const grid = editor.insert("grid", root);
+    const a = editor.insert("card", grid);
+    const b = editor.insert("card", grid);
+    const section = editor.insert("section", root);
+    const text = editor.insert("text", section);
+
+    expect(editor.canInsert("card", grid)).toBe(false); // maxChildren: 2
+    expect(editor.canInsert("text", grid)).toBe(false); // accepts: ["card"]
+    expect(editor.canInsert("alien", root)).toBe(false); // unregistered
+    expect(editor.canInsert("text", "missing")).toBe(false);
+    expect(editor.canInsert("text", section)).toBe(true);
+
+    // A full parent still allows reordering its own child.
+    expect(editor.canMove(a, grid)).toBe(true);
+    expect(editor.canMove(text, text)).toBe(false); // into itself
+    expect(editor.canMove(section, section)).toBe(false);
+    expect(editor.canMove(root, section)).toBe(false);
+    expect(editor.canMove(text, grid)).toBe(false);
+
+    editor.replace(b, { ...editor.getNode(b), locked: true });
+    expect(editor.canMove(b, root)).toBe(false);
+    expect(() => editor.move(b, root)).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
+  });
+});

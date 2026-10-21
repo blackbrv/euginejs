@@ -29,6 +29,7 @@ import {
   createEmptyDocument,
   getNode,
   hasNode,
+  isAncestor,
   type CreateNodeOptions,
   type IdFactory,
   type SubtreeSnapshot,
@@ -219,16 +220,53 @@ export class Editor {
 
   // --- Document mutation commands -----------------------------------------
 
-  insert(type: string, parentId: string, options: InsertOptions = {}): string {
-    const document = this.store.get();
-    const parent = getNode(document, parentId);
-    const definition = this.registry.get(type);
+  /**
+   * Whether `insert(type, parentId)` would succeed — the exact checks it runs,
+   * without changing anything. For drag-over feedback and drop-target search.
+   */
+  canInsert(type: string, parentId: string): boolean {
+    return this.passes(() => this.assertCanInsert(type, parentId));
+  }
 
-    this.registry.assertCanAcceptChild({
-      parentType: parent.type,
-      childType: type,
-      currentChildCount: parent.children.length,
-    });
+  /**
+   * Whether `move(id, parentId)` would succeed: not locked, not the root, not
+   * into its own subtree, and allowed by the registry — counting the node
+   * only once when it's moving within the same parent.
+   */
+  canMove(id: string, parentId: string): boolean {
+    return this.passes(() => this.assertCanMove(id, parentId));
+  }
+
+  private passes(check: () => unknown): boolean {
+    try {
+      check();
+      return true;
+    } catch (error) {
+      if (error instanceof EugineError) return false;
+      throw error;
+    }
+  }
+
+  private assertCanInsert(type: string, parentId: string): ComponentDefinition {
+    const definition = this.registry.get(type);
+    this.assertCanPlace(parentId, type);
+    return definition;
+  }
+
+  private assertCanMove(id: string, parentId: string): void {
+    const document = this.store.get();
+    const node = getNode(document, id);
+    const parent = getNode(document, parentId);
+    if (id === document.rootId) throw invalidDrop("The root node cannot be moved.", { id });
+    if (node.locked) throw invalidDrop(`Node "${id}" is locked and cannot be moved.`, { id });
+    if (isAncestor(document, id, parentId)) {
+      throw invalidDrop("Cannot move a node inside its own subtree.", { id, parentId });
+    }
+    this.assertCanPlace(parentId, node.type, parent.id === node.parent ? parent.children.length - 1 : parent.children.length);
+  }
+
+  insert(type: string, parentId: string, options: InsertOptions = {}): string {
+    const definition = this.assertCanInsert(type, parentId);
 
     const node: EugineNode = {
       id: options.id ?? this.idFactory(),
@@ -260,14 +298,7 @@ export class Editor {
   }
 
   move(id: string, parentId: string, index?: number): void {
-    const document = this.store.get();
-    const node = getNode(document, id);
-    const parent = getNode(document, parentId);
-    this.registry.assertCanAcceptChild({
-      parentType: parent.type,
-      childType: node.type,
-      currentChildCount: parent.id === node.parent ? parent.children.length - 1 : parent.children.length,
-    });
+    this.assertCanMove(id, parentId);
     this.history.execute(new MoveNodeCommand(id, parentId, index));
     this.events.emit("node.move", { id, parentId });
   }
