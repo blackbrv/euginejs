@@ -12,16 +12,11 @@ const EDITABLE_TEXT_PROP: Record<string, string> = {
   text: "content",
 };
 
-/** Walks up from `hoveredId` to the nearest ancestor (inclusive) that accepts `childType`. */
-export function resolveDropParent(editor: Editor, hoveredId: string, childType: string): string {
+/** Walks up from `hoveredId` to the nearest ancestor (inclusive) where `canPlace` holds. */
+export function resolveDropParent(editor: Editor, hoveredId: string, canPlace: (parentId: string) => boolean): string {
   const document = editor.getDocument();
   const chain = [getNode(document, hoveredId), ...getAncestors(document, hoveredId)];
-  for (const candidate of chain) {
-    if (editor.registry.canAcceptChild({ parentType: candidate.type, childType, currentChildCount: candidate.children.length })) {
-      return candidate.id;
-    }
-  }
-  return document.rootId;
+  return chain.find((candidate) => canPlace(candidate.id))?.id ?? document.rootId;
 }
 
 function makeEditableText(el: HTMLElement, node: EugineNode, editor: Editor, propKey: string): void {
@@ -335,8 +330,10 @@ export function mountCanvas(
     try {
       const newType = event.dataTransfer?.getData(NEW_COMPONENT_MIME) || undefined;
       const movedId = event.dataTransfer?.getData(MOVE_NODE_MIME) || undefined;
-      const childType = newType ?? (movedId ? getNode(editor.getDocument(), movedId).type : undefined);
-      if (!childType) return;
+      if (!newType && !movedId) return;
+      // The editor's own checks, so a drop is offered exactly when it would succeed.
+      const canPlace = (parentId: string) =>
+        movedId ? editor.canMove(movedId, parentId) : editor.canInsert(newType!, parentId);
       if (movedId && currentHover?.id === movedId) return; // no-op: dropped onto itself
 
       const document_ = editor.getDocument();
@@ -348,21 +345,15 @@ export function mountCanvas(
       let index: number | undefined;
 
       if (position === "inside" || !hoveredParent) {
-        parentId = resolveDropParent(editor, hoveredId, childType);
+        parentId = resolveDropParent(editor, hoveredId, canPlace);
         index = undefined;
-      } else if (
-        editor.registry.canAcceptChild({
-          parentType: hoveredParent.type,
-          childType,
-          currentChildCount: hoveredParent.children.length,
-        })
-      ) {
+      } else if (canPlace(hoveredParent.id)) {
         parentId = hoveredParent.id;
         const siblings = movedId ? hoveredParent.children.filter((id) => id !== movedId) : hoveredParent.children;
         const hoverIndex = siblings.indexOf(hoveredId);
         index = position === "after" ? hoverIndex + 1 : hoverIndex;
       } else {
-        parentId = resolveDropParent(editor, hoveredId, childType);
+        parentId = resolveDropParent(editor, hoveredId, canPlace);
         index = undefined;
       }
 

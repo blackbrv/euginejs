@@ -21,7 +21,7 @@ export function pasteClipboard(editor: Editor, anchorId: string, onSelect: (id: 
     for (const snapshot of clipboard) {
       const rootType = snapshot.nodes[snapshot.rootId]?.type;
       if (!rootType) continue;
-      const parentId = resolveDropParent(editor, anchorId, rootType);
+      const parentId = resolveDropParent(editor, anchorId, (id) => editor.canInsert(rootType, id));
       pastedIds.push(editor.pasteSubtree(snapshot, parentId));
     }
   }, "paste");

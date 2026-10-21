@@ -1,4 +1,4 @@
-import { getNode, getParent, isAncestor, walk, type Editor, type EugineNode } from "eugine";
+import { getNode, getParent, walk, type Editor, type EugineNode } from "eugine";
 import { getDropPosition, type DropPosition } from "eugine/renderer";
 import { icon } from "./icons";
 import { schemaFor } from "./schema";
@@ -83,15 +83,9 @@ function layerName(node: EugineNode): string {
 /** Whether dropping `draggedId` at `position` relative to `targetId` would be a legal move. */
 function canDropLayer(editor: Editor, draggedId: string, targetId: string, position: DropPosition): boolean {
   if (draggedId === targetId) return false;
-  const document_ = editor.getDocument();
-  const draggedNode = getNode(document_, draggedId);
-  if (draggedNode.locked || isAncestor(document_, draggedId, targetId)) return false;
-
-  const parent = position === "inside" ? getNode(document_, targetId) : getParent(document_, targetId);
-  if (!parent) return false; // "before"/"after" on the root: it has no parent to reorder within
-
-  const currentChildCount = parent.id === draggedNode.parent ? parent.children.length - 1 : parent.children.length;
-  return editor.registry.canAcceptChild({ parentType: parent.type, childType: draggedNode.type, currentChildCount });
+  // "before"/"after" on the root: it has no parent to reorder within.
+  const parentId = position === "inside" ? targetId : getParent(editor.getDocument(), targetId)?.id;
+  return parentId !== undefined && editor.canMove(draggedId, parentId);
 }
 
 /** Where `draggedId` should land — assumes canDropLayer() already passed. */
