@@ -162,10 +162,9 @@ document.getElementById("btn-load")!.addEventListener("click", async () => {
     return;
   }
   editor.load(saved);
-  // load() clears History without emitting a history event, so the panel and
-  // the toolbar buttons have to be brought back in line by hand.
+  // load() clears History, which refreshes the buttons through onChange;
+  // the timeline persisted from the previous session has to go by hand.
   resetHistoryPanel(editor, historyEl);
-  updateHistoryButtons();
   showToast("Loaded from local storage", "success");
 });
 

@@ -66,11 +66,17 @@ export default function EditorPage() {
     const refresh = () => {
       renderer.update(editor.getDocument());
       setJson(JSON.stringify(editor.serialize(), null, 2));
+    };
+    // Not from document.change: that fires before the change reaches the
+    // undo stack, so canUndo() would read one step behind.
+    const refreshHistory = () => {
       setCanUndo(editor.history.canUndo());
       setCanRedo(editor.history.canRedo());
     };
     editor.events.on("document.change", refresh);
+    editor.history.onChange(refreshHistory);
     refresh();
+    refreshHistory();
 
     return () => {
       renderer.destroy();

@@ -75,6 +75,10 @@ export default function Studio() {
     editor.events.on("document.change", () => {
       canvas.refresh();
       refreshPanels();
+    });
+    // Not from document.change: that fires before the change reaches the undo
+    // stack (canUndo() would lag a step), and load()'s clear fires only here.
+    editor.history.onChange(() => {
       setCanUndo(editor.history.canUndo());
       setCanRedo(editor.history.canRedo());
     });
