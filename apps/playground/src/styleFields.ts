@@ -277,11 +277,21 @@ export function applyNodeStyles(el: HTMLElement, styles: NodeStyles | undefined)
   }
 }
 
-/** Serializes node.styles into a `property: value; ...` string for an HTML `style` attribute. */
+/** A CSS property name, including custom properties (`--brand`). */
+const CSS_PROPERTY = /^(--[\w-]+|-?[a-zA-Z][a-zA-Z-]*)$/;
+
+/**
+ * Serializes node.styles into a `property: value; ...` string for an HTML
+ * `style` attribute. Drops what `setProperty()` would reject on the canvas:
+ * a value containing `;` (or braces) would otherwise start new declarations
+ * in the export — `red; position:fixed; inset:0` is inert in the editor but
+ * a full-page overlay in the exported page.
+ */
 export function stylesToCssText(styles: NodeStyles | undefined): string {
   if (!styles) return "";
   return Object.entries(styles)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(([property, value]) => CSS_PROPERTY.test(property) && !/[;{}]/.test(String(value)))
     .map(([property, value]) => `${property}: ${String(value)}`)
     .join("; ");
 }
