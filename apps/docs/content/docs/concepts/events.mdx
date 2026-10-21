@@ -19,7 +19,7 @@ off(); // unsubscribe
 | `document.load` | `{ document }` |
 | `document.remote` | `{ applied, dropped }` |
 | `node.create` | `{ node }` |
-| `node.delete` | `{ id }` |
+| `node.delete` | `{ id, node }` |
 | `node.move` | `{ id, parentId }` |
 | `node.update` | `{ id }` |
 | `node.select` | `{ ids, previous }` |
@@ -35,6 +35,11 @@ event for the same operation.
 The numbered sequence below makes that guarantee explicit.
 
 <ArchitectureDiagram data={eventOrderingDiagram} title="Event ordering guarantee" />
+
+`node.create` and `node.delete` fire once for every node that enters or leaves the document, whatever
+caused it — insert, paste, duplicate, wrap/unwrap, undo/redo, or a remote operation — and that
+includes each descendant of a pasted or removed subtree. `editor.load()` is the exception: it
+replaces the whole document and reports that once, as `document.load`.
 
 Selection is pruned before `document.change` fires, so a listener that reads the current selection
 never observes an id the document no longer contains.

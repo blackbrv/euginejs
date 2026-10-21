@@ -51,8 +51,15 @@ export interface EditorEventMap {
   "document.load": { document: EugineDocument };
   /** Operations from another client were applied — see Editor.applyRemote(). */
   "document.remote": { applied: EugineOperation[]; dropped: EugineOperation[] };
+  /**
+   * A node entered the document, for any reason: insert, paste, duplicate,
+   * wrap, an undo/redo that restores it, or a remote operation. Fires once per
+   * node, including every descendant of a pasted or restored subtree — not
+   * for `load()`, which reports the whole document via `document.load`.
+   */
   "node.create": { node: EugineNode };
-  "node.delete": { id: string };
+  /** A node left the document, for any reason (see `node.create`). Once per node, descendants included. */
+  "node.delete": { id: string; node: EugineNode };
   "node.move": { id: string; parentId: string };
   "node.select": { ids: string[]; previous: string[] };
   "node.update": { id: string };
@@ -131,6 +138,8 @@ export class Editor {
   private readonly plugins: PluginManager<Editor>;
   private readonly disposers: Array<() => void> = [];
   private readonly maxDepth: number | undefined;
+  /** True while load() swaps the document — it reports itself via document.load, not per node. */
+  private loading = false;
   /** The revision last loaded from or saved to storage — see getBaseRevision(). */
   private baseRevision: number;
 
@@ -173,6 +182,7 @@ export class Editor {
         const stale = this.selection.get().filter((id) => !hasNode(document, id));
         if (stale.length > 0) this.selection.deselect(stale);
         this.events.emit("document.change", { document, previous, origin });
+        if (!this.loading) this.emitNodeMembership(previous, document);
       }),
       // Selection changes are what a presence layer subscribes to in order to
       // show "Sarah is editing this heading". The event was declared on
@@ -189,6 +199,23 @@ export class Editor {
 
     this.plugins.markReady();
     this.events.emit("editor.ready", {});
+  }
+
+  /**
+   * node.create/node.delete, derived from which ids a change added or removed
+   * rather than emitted by each mutating method: that way undo, redo, wrap,
+   * unwrap and remote operations can't be forgotten, and a subtree reports
+   * every node in it.
+   */
+  // ponytail: O(nodes) per change; track touched ids per command if that shows up in profiles.
+  private emitNodeMembership(previous: EugineDocument, document: EugineDocument): void {
+    if (previous.nodes === document.nodes) return;
+    for (const [id, node] of Object.entries(previous.nodes)) {
+      if (!hasNode(document, id)) this.events.emit("node.delete", { id, node });
+    }
+    for (const [id, node] of Object.entries(document.nodes)) {
+      if (!hasNode(previous, id)) this.events.emit("node.create", { node });
+    }
   }
 
   private resolveInitialDocument(options: CreateEditorOptions): EugineDocument {
@@ -284,7 +311,6 @@ export class Editor {
     };
 
     this.history.execute(new InsertNodeCommand(node, parentId, options.index));
-    this.events.emit("node.create", { node });
     return node.id;
   }
 
@@ -294,7 +320,6 @@ export class Editor {
     // constructor, which prunes any selected id no longer present in the
     // document as soon as it changes.
     this.history.execute(new RemoveNodeCommand(id));
-    this.events.emit("node.delete", { id });
   }
 
   move(id: string, parentId: string, index?: number): void {
@@ -318,9 +343,7 @@ export class Editor {
     if (node.parent) this.assertCanPlace(node.parent, node.type);
     const command = new DuplicateNodeCommand(id, this.idFactory);
     this.history.execute(command);
-    const newId = command.duplicatedId;
-    if (newId) this.events.emit("node.create", { node: this.getNode(newId) });
-    return newId ?? id;
+    return command.duplicatedId ?? id;
   }
 
   /**
@@ -350,7 +373,6 @@ export class Editor {
     this.assertCanPlace(parentId, root.type);
     const clone = cloneSubtreeSnapshot(snapshot.nodes, snapshot.rootId, this.idFactory);
     this.history.execute(new PasteSubtreeCommand(clone.nodes, clone.rootId, parentId, index));
-    this.events.emit("node.create", { node: this.getNode(clone.rootId) });
     return clone.rootId;
   }
 
@@ -511,7 +533,12 @@ export class Editor {
     // server has never seen. loadDocument() above already validated the
     // document (including any maxDepth override), so skip the redundant second
     // validation that store.set() would otherwise run.
-    this.store.set(document, { bumpRevision: false, validate: false });
+    this.loading = true;
+    try {
+      this.store.set(document, { bumpRevision: false, validate: false });
+    } finally {
+      this.loading = false;
+    }
     this.baseRevision = this.store.getRevision();
     this.history.clear();
     this.selection.clear();

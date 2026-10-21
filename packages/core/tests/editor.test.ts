@@ -422,3 +422,35 @@ describe("canInsert / canMove", () => {
     expect(() => editor.move(b, root)).toThrow(expect.objectContaining({ code: "EUGINE_INVALID_DROP" }));
   });
 });
+
+describe("node.create / node.delete", () => {
+  it("fire once per node for every path that adds or removes nodes, but not for load()", () => {
+    const editor = buildBasicEditor();
+    const root = editor.getDocument().rootId;
+    const log: string[] = [];
+    editor.events.on("node.create", ({ node }) => log.push(`+${node.type}`));
+    editor.events.on("node.delete", ({ node }) => log.push(`-${node.type}`));
+
+    const section = editor.insert("section", root);
+    editor.insert("text", section);
+    expect(log.splice(0)).toEqual(["+section", "+text"]);
+
+    editor.pasteSubtree(editor.copySubtree(section), root);
+    expect(log.splice(0)).toEqual(["+section", "+text"]);
+
+    editor.remove(section);
+    expect(log.splice(0).sort()).toEqual(["-section", "-text"]);
+
+    editor.history.undo();
+    expect(log.splice(0).sort()).toEqual(["+section", "+text"]);
+
+    editor.wrap(section, "section");
+    expect(log.splice(0)).toEqual(["+section"]);
+
+    editor.applyRemote([{ type: "insert", node: { id: "r", type: "text", props: {}, children: [], parent: null }, parentId: root }]);
+    expect(log.splice(0)).toEqual(["+text"]);
+
+    editor.load(editor.serialize());
+    expect(log).toEqual([]);
+  });
+});
