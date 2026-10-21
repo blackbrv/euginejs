@@ -1,7 +1,6 @@
 import { ComponentRegistry, type EugineNode } from "eugine";
-import { escapeAttribute, escapeHtml, sanitizeUrl, type HtmlComponentRenderer } from "eugine/server";
+import { escapeAttribute, escapeHtml, sanitizeUrl, stylesToCssText, type HtmlComponentRenderer } from "eugine/server";
 import type { PokemonSummary } from "./pokeApi";
-import { stylesToCssText } from "./styleFields";
 
 /**
  * Per-node, freshly-fetched Pokémon payloads keyed by node id. Built server-

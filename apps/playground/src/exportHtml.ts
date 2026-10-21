@@ -1,6 +1,5 @@
 import { ComponentRegistry, type EugineDocument, type EugineNode } from "eugine";
-import { escapeAttribute, escapeHtml, renderToString, sanitizeUrl, type HtmlComponentRenderer } from "eugine/server";
-import { stylesToCssText } from "./styleFields.js";
+import { escapeAttribute, escapeHtml, renderToString, sanitizeUrl, stylesToCssText, type HtmlComponentRenderer } from "eugine/server";
 
 /** The design panel's styles become an inline `style="..."` attribute, kept in sync with the canvas. */
 function styleAttr(node: EugineNode): string {

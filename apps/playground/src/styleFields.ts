@@ -1,4 +1,3 @@
-import type { NodeStyles } from "eugine";
 
 export type DesignControl = "color" | "text" | "select" | "toggle" | "length" | "grid-tracks";
 
@@ -261,37 +260,4 @@ const DESIGN_PROPERTY_SET = new Set(DESIGN_FIELDS.map((f) => f.property));
 /** True for any style property NOT covered by a dedicated DESIGN_FIELDS control. */
 export function isCustomStyleProperty(property: string): boolean {
   return !DESIGN_PROPERTY_SET.has(property);
-}
-
-/**
- * Applies node.styles to a live DOM element via `setProperty()` — never an
- * indexed/`any` write onto CSSStyleDeclaration, so any string the user types
- * as a property name (background-color, box-shadow, transform, anything) is
- * applied exactly as real CSS would interpret it.
- */
-export function applyNodeStyles(el: HTMLElement, styles: NodeStyles | undefined): void {
-  if (!styles) return;
-  for (const [property, value] of Object.entries(styles)) {
-    if (value === undefined || value === null || value === "") continue;
-    el.style.setProperty(property, String(value));
-  }
-}
-
-/** A CSS property name, including custom properties (`--brand`). */
-const CSS_PROPERTY = /^(--[\w-]+|-?[a-zA-Z][a-zA-Z-]*)$/;
-
-/**
- * Serializes node.styles into a `property: value; ...` string for an HTML
- * `style` attribute. Drops what `setProperty()` would reject on the canvas:
- * a value containing `;` (or braces) would otherwise start new declarations
- * in the export — `red; position:fixed; inset:0` is inert in the editor but
- * a full-page overlay in the exported page.
- */
-export function stylesToCssText(styles: NodeStyles | undefined): string {
-  if (!styles) return "";
-  return Object.entries(styles)
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
-    .filter(([property, value]) => CSS_PROPERTY.test(property) && !/[;{}]/.test(String(value)))
-    .map(([property, value]) => `${property}: ${String(value)}`)
-    .join("; ");
 }

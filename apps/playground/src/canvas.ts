@@ -1,7 +1,6 @@
 import { getAncestors, getNode, getParent, ComponentRegistry, type Editor, type EugineNode } from "eugine";
-import { getDropPosition, renderToDom, type DomComponentRenderer, type DomRenderer, type DropPosition } from "eugine/renderer";
+import { applyNodeStyles, getDropPosition, renderToDom, type DomComponentRenderer, type DomRenderer, type DropPosition } from "eugine/renderer";
 import { COMPONENT_SCHEMAS } from "./schema.js";
-import { applyNodeStyles } from "./styleFields.js";
 
 const NEW_COMPONENT_MIME = "application/x-eugine-new-component";
 const MOVE_NODE_MIME = "application/x-eugine-move-node";

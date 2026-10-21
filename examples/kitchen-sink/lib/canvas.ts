@@ -1,9 +1,8 @@
 import { getAncestors, getNode, getParent, ComponentRegistry, type Editor, type EugineNode } from "eugine";
-import { getDropPosition, renderToDom, type DomComponentRenderer, type DomRenderer, type DropPosition } from "eugine/renderer";
+import { applyNodeStyles, getDropPosition, renderToDom, type DomComponentRenderer, type DomRenderer, type DropPosition } from "eugine/renderer";
 import { COMPONENT_SCHEMAS } from "./schema";
 import type { PokemonDataPlugin, PokemonNodeState } from "./pokemonDataPlugin";
 import type { PokemonSummary } from "./pokeApi";
-import { applyNodeStyles } from "./styleFields";
 
 const NEW_COMPONENT_MIME = "application/x-eugine-new-component";
 const MOVE_NODE_MIME = "application/x-eugine-move-node";
