@@ -38,13 +38,19 @@ export interface PokemonDataPlugin extends EuginePlugin<Editor> {
   getState(nodeId: string): PokemonNodeState | undefined;
   /** Fetches/appends the next page for a grid node and bumps its persisted `page`. */
   loadMore(nodeId: string): Promise<void>;
-  /** Subscribe to per-node state changes. Returns an unsubscribe function. */
+  /**
+   * Sets the node's state-change callback, replacing any earlier one. One
+   * slot per node, not a list: the canvas re-runs a component's render (and
+   * so re-subscribes) on every edit to it, and only the latest render's
+   * element is live — a list would grow on every edit and keep patching
+   * detached elements. Returns an unsubscribe function.
+   */
   subscribe(nodeId: string, cb: () => void): () => void;
 }
 
 export function createPokemonDataPlugin(onActivity: (line: string) => void): PokemonDataPlugin {
   const states = new Map<string, PokemonNodeState>();
-  const listeners = new Map<string, Set<() => void>>();
+  const listeners = new Map<string, () => void>();
 
   let editor: Editor | null = null;
   let renderer: DomRenderer | null = null;
@@ -52,12 +58,10 @@ export function createPokemonDataPlugin(onActivity: (line: string) => void): Pok
   let unsubscribeDocumentLoad: (() => void) | null = null;
 
   const notify = (nodeId: string) => {
-    for (const cb of listeners.get(nodeId) ?? []) {
-      try {
-        cb();
-      } catch (error) {
-        console.warn("[kitchen-sink] pokemon subscriber threw:", error);
-      }
+    try {
+      listeners.get(nodeId)?.();
+    } catch (error) {
+      console.warn("[kitchen-sink] pokemon subscriber threw:", error);
     }
   };
 
@@ -158,7 +162,11 @@ export function createPokemonDataPlugin(onActivity: (line: string) => void): Pok
         // The only persisted piece of this action: bump the "how far has this
         // reader paged" cursor. Undoable, so Publish captures how far the
         // document was paginated without serializing any item payloads.
-        const pageIndex = Number(node.props.page ?? 0) + 1;
+        // Re-read after the await: the node may have been edited or deleted
+        // while the fetch was in flight.
+        const live = editor?.getDocument().nodes[nodeId];
+        if (!live) return;
+        const pageIndex = Number(live.props.page ?? 0) + 1;
         editor?.updateProps(nodeId, { page: pageIndex }, { merge: true });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -169,15 +177,9 @@ export function createPokemonDataPlugin(onActivity: (line: string) => void): Pok
     },
 
     subscribe(nodeId, cb) {
-      let set = listeners.get(nodeId);
-      if (!set) {
-        set = new Set();
-        listeners.set(nodeId, set);
-      }
-      set.add(cb);
+      listeners.set(nodeId, cb);
       return () => {
-        set.delete(cb);
-        if (set.size === 0) listeners.delete(nodeId);
+        if (listeners.get(nodeId) === cb) listeners.delete(nodeId);
       };
     },
 

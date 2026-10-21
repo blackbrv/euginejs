@@ -248,9 +248,9 @@ function buildRegistry(
 
       // Rebuild the track's contents once a fetch resolves — the same
       // bypass-history-and-mutate-the-live-element pattern `previewStyle`
-      // uses (see lib/panels.ts). The unsubscribe is intentionally leaked on
-      // node removal: the DOM renderer has no unmount hook, so the orphan
-      // entry is a harmless kitchen-sink limitation, not worth GC machinery.
+      // uses (see lib/panels.ts). subscribe() replaces this node's previous
+      // callback, so re-renders don't pile up listeners. A removed node keeps
+      // its one slot: the DOM renderer has no unmount hook to clear it.
       pokemonPlugin.subscribe(ctx.node.id, () => {
         const host = pokemonPlugin.getRenderer()?.getElement(ctx.node.id);
         if (!(host instanceof HTMLElement)) return;
