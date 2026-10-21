@@ -69,3 +69,19 @@ export function mount(container: Element) {
   };
 }
 // #endregion dom
+
+// #region cleanup
+// A render that sets something up — a subscription, a timer, an observer —
+// registers its teardown with onCleanup. It runs exactly once: when the
+// element is rebuilt because the node changed, when the node leaves the
+// document, or on renderer.destroy().
+domRegistry.registerOrReplace({
+  type: "clock",
+  render: (_props, _children, { onCleanup }) => {
+    const el = document.createElement("time");
+    const timer = setInterval(() => (el.textContent = new Date().toLocaleTimeString()), 1000);
+    onCleanup(() => clearInterval(timer));
+    return el;
+  },
+});
+// #endregion cleanup

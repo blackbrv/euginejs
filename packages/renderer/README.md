@@ -51,3 +51,7 @@ editor.selection.onSelectionChange(({ ids }) => renderer.setSelection(ids));
 
 For more control than CSS alone gives you (e.g. rendering an extra badge element only when
 selected), a component's `render` function also receives `context.selected: boolean` directly.
+
+A render that sets something up (a subscription, a timer) registers its teardown with
+`context.onCleanup(fn)`. It runs once: when the element is rebuilt, when the node leaves the
+document, or on `destroy()`.

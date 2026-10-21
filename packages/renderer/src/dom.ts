@@ -6,6 +6,13 @@ export interface DomRenderContext<TData = unknown> {
   data: TData | undefined;
   /** Whether this node is currently selected — see RenderToDomOptions.selection / DomRenderer.setSelection(). */
   selected: boolean;
+  /**
+   * Registers teardown for the element this render returns — unsubscribe,
+   * clear a timer, disconnect an observer. Runs when the renderer replaces
+   * the element (the node's data changed), when the node leaves the
+   * document, or on destroy(); whichever comes first, exactly once.
+   */
+  onCleanup(fn: () => void): void;
 }
 
 /**
@@ -60,7 +67,7 @@ export interface DomRenderer {
   getSelection(): string[];
   /** The live DOM node currently rendered for a given node id, if any. */
   getElement(id: string): Node | undefined;
-  /** Detaches everything this renderer created and stops tracking it. */
+  /** Detaches everything this renderer created, runs every pending onCleanup, and stops tracking it. Later update() calls do nothing. */
   destroy(): void;
 }
 
@@ -80,6 +87,14 @@ export function renderToDom<TData = unknown>(
   const previousNodes = new Map<string, EugineNode>();
   const onMissing = options.onMissingComponent ?? "placeholder";
   let selectedIds = new Set<string>(options.selection ?? []);
+  const cleanups = new Map<string, Array<() => void>>();
+  let destroyed = false;
+
+  function runCleanups(id: string): void {
+    const fns = cleanups.get(id);
+    cleanups.delete(id);
+    for (const fn of fns ?? []) fn();
+  }
 
   function buildNode(node: EugineNode, children: Node[]): Node {
     if (node.hidden) return globalThis.document.createComment(`eugine:hidden ${node.id}`);
@@ -100,7 +115,15 @@ export function renderToDom<TData = unknown>(
     }
 
     if (typeof definition.render === "function") {
-      return definition.render(node.props, children, { node, data: options.data, selected: selectedIds.has(node.id) });
+      const fns: Array<() => void> = [];
+      const built = definition.render(node.props, children, {
+        node,
+        data: options.data,
+        selected: selectedIds.has(node.id),
+        onCleanup: (fn) => void fns.push(fn),
+      });
+      if (fns.length > 0) cleanups.set(node.id, fns);
+      return built;
     }
 
     return buildPlaceholder(node, children);
@@ -130,6 +153,8 @@ export function renderToDom<TData = unknown>(
     }
 
     const children = node.children.map((childId) => reconcile(childId, doc, visited));
+    // The element being replaced tears down before its successor sets up.
+    runCleanups(id);
     const next = buildNode(node, children);
     if (next instanceof Element) next.toggleAttribute(SELECTED_ATTRIBUTE, selectedIds.has(id));
     elements.set(id, next);
@@ -153,6 +178,7 @@ export function renderToDom<TData = unknown>(
   function collectGarbage(visited: Set<string>): void {
     for (const id of Array.from(elements.keys())) {
       if (!visited.has(id)) {
+        runCleanups(id);
         elements.delete(id);
         previousNodes.delete(id);
       }
@@ -165,6 +191,9 @@ export function renderToDom<TData = unknown>(
   }
 
   function update(nextDocument: EugineDocument): void {
+    // After destroy() there is no container to own; rendering again would also
+    // re-run component setup whose cleanups nobody will call.
+    if (destroyed) return;
     const visited = new Set<string>();
     const rootNode = reconcile(nextDocument.rootId, nextDocument, visited);
     if (rootNode.parentNode !== container) {
@@ -181,6 +210,8 @@ export function renderToDom<TData = unknown>(
     getSelection: () => Array.from(selectedIds),
     getElement: (id) => elements.get(id),
     destroy: () => {
+      destroyed = true;
+      for (const id of Array.from(cleanups.keys())) runCleanups(id);
       container.replaceChildren();
       elements.clear();
       previousNodes.clear();

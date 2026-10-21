@@ -33,6 +33,10 @@ any `window`/`document` API there is a compile error rather than a runtime surpr
 into children regardless — a changed descendant patches itself into the live DOM without forcing
 its ancestors to rebuild. Elements for ids no longer visited are garbage-collected.
 
+### Cleanup
+
+<CodeFromFile file="rendering" region="cleanup" title="Tearing down what a render set up" />
+
 ## Selection
 
 `setSelection()` toggles the `data-eugine-selected` attribute on live elements with no rebuild and

@@ -183,3 +183,41 @@ describe("renderToDom", () => {
     expect(renderer.getElement("t")).toBeUndefined();
   });
 });
+
+describe("onCleanup", () => {
+  function trackingRegistry(log: string[]) {
+    const registry = buildRegistry();
+    registry.registerOrReplace({
+      type: "text",
+      render: (props, _children, ctx) => {
+        log.push(`setup ${String(props.content)}`);
+        ctx.onCleanup(() => log.push(`cleanup ${String(props.content)}`));
+        return document.createElement("p");
+      },
+    });
+    return registry;
+  }
+
+  it("runs once when the element is rebuilt, when the node is removed, and on destroy", () => {
+    const log: string[] = [];
+    let doc = createEmptyDocument();
+    doc = insertNode(doc, createNode("text", { id: "a", props: { content: "a1" } }), doc.rootId);
+    doc = insertNode(doc, createNode("text", { id: "b", props: { content: "b1" } }), doc.rootId);
+    const renderer = renderToDom(doc, document.createElement("div"), { registry: trackingRegistry(log) });
+    expect(log.splice(0)).toEqual(["setup a1", "setup b1"]);
+
+    doc = updateNodeProps(doc, "a", { content: "a2" });
+    renderer.update(doc);
+    expect(log.splice(0)).toEqual(["cleanup a1", "setup a2"]); // b untouched
+
+    doc = removeNode(doc, "a");
+    renderer.update(doc);
+    expect(log.splice(0)).toEqual(["cleanup a2"]);
+
+    renderer.destroy();
+    expect(log.splice(0)).toEqual(["cleanup b1"]);
+
+    renderer.update(doc); // no-op after destroy
+    expect(log).toEqual([]);
+  });
+});
