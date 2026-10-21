@@ -3,6 +3,15 @@
 All `@euginejs/*` packages and `eugine` are versioned together. While Eugine is on 0.x, a minor
 bump (0.1 → 0.2) may contain breaking changes; patch bumps never do.
 
+## Unreleased
+
+### Added
+
+- `stylesToCssText(styles)` in `@euginejs/renderer-server` (`eugine/server`): serializes
+  `node.styles` for a `style` attribute, dropping values that would inject extra declarations.
+- `applyNodeStyles(el, styles)` in `@euginejs/renderer` (`eugine/renderer`): applies `node.styles`
+  to a live element through `style.setProperty()`.
+
 ## 0.2.0
 
 Every package moves to 0.2.0 and depends on `@euginejs/core@^0.2.0`. Upgrade them together: on

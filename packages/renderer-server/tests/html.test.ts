@@ -1,7 +1,7 @@
 import { ComponentRegistry, createEmptyDocument, createNode, insertNode } from "@euginejs/core";
 import { describe, expect, it } from "vitest";
 import { renderToString, type HtmlComponentRenderer } from "../src/html.js";
-import { attributesToHtml, escapeHtml, sanitizeUrl } from "../src/sanitize.js";
+import { attributesToHtml, escapeHtml, sanitizeUrl, stylesToCssText } from "../src/sanitize.js";
 
 function buildDocument() {
   let doc = createEmptyDocument();
@@ -242,5 +242,17 @@ describe("sanitizeUrl", () => {
     // The regression fix strips tab/newline only for the scheme check; the
     // returned value is the caller's trimmed original, not the stripped copy.
     expect(sanitizeUrl("https://example.com/path\tname")).toBe("https://example.com/path\tname");
+  });
+});
+
+describe("stylesToCssText", () => {
+  it("serializes ordinary and custom properties", () => {
+    expect(stylesToCssText({ color: "red", "--brand": "#00f", opacity: 0.5 })).toBe("color: red; --brand: #00f; opacity: 0.5");
+  });
+
+  it("drops values that would start new declarations, invalid property names, and non-string values", () => {
+    expect(
+      stylesToCssText({ color: "red; position:fixed; inset:0", "x:y": "1", border: { width: 1 }, empty: "", margin: "0" }),
+    ).toBe("margin: 0");
   });
 });

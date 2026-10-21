@@ -43,4 +43,5 @@ component types are handled via `onMissingComponent: "throw" | "omit" | "placeho
 `"placeholder"`, which renders an inert `<div data-eugine-type="...">` wrapper around the node's
 children, matching the DOM renderer). Use the exported `escapeHtml`,
 `escapeAttribute` and `sanitizeUrl` helpers when writing your own component renderers to avoid
-script injection from document-provided text/URLs.
+script injection from document-provided text/URLs, and `stylesToCssText` to turn `node.styles`
+into a `style` attribute without letting a value inject extra CSS declarations.

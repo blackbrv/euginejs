@@ -43,6 +43,32 @@ export function sanitizeUrl(value: unknown): string | null {
   return trimmed;
 }
 
+/** A CSS property name, including custom properties (`--brand`). */
+const CSS_PROPERTY = /^(--[\w-]+|-?[a-zA-Z][a-zA-Z-]*)$/;
+
+/**
+ * Serializes `node.styles` into a `property: value; ...` string for an HTML
+ * `style` attribute (escape it with escapeAttribute(), as for any attribute).
+ * Keeps only string/number values under valid property names, and drops any
+ * value containing `;`, `{` or `}`: a value like `red; position:fixed; inset:0`
+ * would otherwise start new declarations — inert in the editor, where the DOM
+ * renderer's applyNodeStyles() goes through `setProperty()`, but a full-page
+ * overlay in the exported HTML.
+ */
+export function stylesToCssText(styles: Record<string, unknown> | undefined): string {
+  if (!styles) return "";
+  return Object.entries(styles)
+    .filter(
+      ([property, value]) =>
+        (typeof value === "string" || typeof value === "number") &&
+        value !== "" &&
+        CSS_PROPERTY.test(property) &&
+        !/[;{}]/.test(String(value)),
+    )
+    .map(([property, value]) => `${property}: ${String(value)}`)
+    .join("; ");
+}
+
 /** A syntactically valid HTML attribute name — rejecting anything else stops a hostile key from breaking out of the tag (values are escaped, but an attribute *name* can't be). */
 const SAFE_ATTRIBUTE_NAME = /^[a-zA-Z_:][a-zA-Z0-9_:.-]*$/;
 

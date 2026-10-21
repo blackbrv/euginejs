@@ -1,6 +1,6 @@
 import { ComponentRegistry, createEmptyDocument, createNode, insertNode, removeNode, updateNodeProps } from "@euginejs/core";
 import { describe, expect, it } from "vitest";
-import { renderToDom, SELECTED_ATTRIBUTE, type DomComponentRenderer } from "../src/dom.js";
+import { applyNodeStyles, renderToDom, SELECTED_ATTRIBUTE, type DomComponentRenderer } from "../src/dom.js";
 
 function buildRegistry() {
   const registry = new ComponentRegistry<DomComponentRenderer>();
@@ -219,5 +219,16 @@ describe("onCleanup", () => {
 
     renderer.update(doc); // no-op after destroy
     expect(log).toEqual([]);
+  });
+});
+
+describe("applyNodeStyles", () => {
+  it("applies valid styles through setProperty and ignores injected declarations", () => {
+    const el = document.createElement("div");
+    applyNodeStyles(el, { color: "red", "--brand": "#00f", margin: "red; position:fixed", border: { width: 1 } });
+    expect(el.style.getPropertyValue("color")).toBe("red");
+    expect(el.style.getPropertyValue("--brand")).toBe("#00f");
+    expect(el.style.getPropertyValue("position")).toBe("");
+    expect(el.style.getPropertyValue("margin")).toBe("");
   });
 });

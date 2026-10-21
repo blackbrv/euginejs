@@ -51,6 +51,22 @@ export interface RenderToDomOptions<TData = unknown> {
  */
 export const SELECTED_ATTRIBUTE = "data-eugine-selected";
 
+/**
+ * Applies `node.styles` to a live element through `style.setProperty()`, so a
+ * value is accepted or rejected exactly as real CSS would — an invalid one
+ * (`red; position:fixed`) is dropped, never parsed into extra declarations.
+ * Only string/number values are applied. Pair with `stylesToCssText()` from
+ * `@euginejs/renderer-server` for the same styles in exported HTML.
+ */
+export function applyNodeStyles(el: HTMLElement, styles: Record<string, unknown> | undefined): void {
+  if (!styles) return;
+  for (const [property, value] of Object.entries(styles)) {
+    if ((typeof value === "string" && value !== "") || typeof value === "number") {
+      el.style.setProperty(property, String(value));
+    }
+  }
+}
+
 export interface DomRenderer {
   /** Applies a new document, patching only the DOM nodes whose data actually changed. */
   update(document: EugineDocument): void;

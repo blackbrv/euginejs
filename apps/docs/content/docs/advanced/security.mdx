@@ -52,7 +52,7 @@ Props are attacker-controlled in any multi-tenant product. Interpolating one int
 escaping is an XSS hole:
 
 ```ts
-import { attributesToHtml, escapeAttribute, escapeHtml, sanitizeUrl } from "eugine/server";
+import { attributesToHtml, escapeAttribute, escapeHtml, sanitizeUrl, stylesToCssText } from "eugine/server";
 ```
 
 `sanitizeUrl` rejects `javascript:` and other script-bearing schemes — apply it to anything that
@@ -63,6 +63,12 @@ at once: it rejects syntactically unsafe attribute names, drops every attribute 
 node props. It
 only recognizes those specific URL-bearing attribute names, though; a custom prop meant to become a
 URL still needs its own `sanitizeUrl()` call.
+
+`node.styles` is attacker-controlled too. Turn it into a `style` attribute with `stylesToCssText`,
+which drops values containing `;`, `{` or `}` — otherwise `red; position:fixed; inset:0` becomes a
+page-covering overlay — and escape the result with `escapeAttribute`. In the browser, the DOM
+renderer's `applyNodeStyles` (from `eugine/renderer`) applies the same styles through
+`setProperty()`, which rejects invalid values the same way.
 
 ## Styles
 
