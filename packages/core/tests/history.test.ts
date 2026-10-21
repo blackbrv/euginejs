@@ -52,6 +52,18 @@ describe("History", () => {
     expect(history.canUndo()).toBe(false);
   });
 
+  it("fires change with kind \"clear\" when cleared, so Undo/Redo UI can refresh after editor.load()", () => {
+    const store = new DocumentStore(createEmptyDocument());
+    const history = new History(store);
+    history.execute(new InsertNodeCommand(createNode("text", { id: "t" }), store.get().rootId));
+
+    const seen: Array<{ kind: string; canUndo: boolean }> = [];
+    history.onChange(({ kind }) => seen.push({ kind, canUndo: history.canUndo() }));
+    history.clear();
+
+    expect(seen).toEqual([{ kind: "clear", canUndo: false }]);
+  });
+
   it("groups a transaction of multiple commands into a single undo step", () => {
     let doc = createEmptyDocument();
     doc = insertNode(doc, createNode("section", { id: "a" }), doc.rootId);

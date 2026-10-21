@@ -43,7 +43,15 @@ export interface HistoryEntry {
 
 export interface HistoryEvents {
   beforeChange: { command: Command };
-  change: { transaction: Transaction; kind: "execute" | "undo" | "redo" | "clear" };
+  /**
+   * The stacks moved. Fires after they are updated, so `canUndo()`/`canRedo()`
+   * read inside a listener are current — unlike `document.change`, which fires
+   * from inside the command, before the transaction reaches a stack. `"clear"`
+   * (also fired by `editor.load()`) has no transaction.
+   */
+  change:
+    | { transaction: Transaction; kind: "execute" | "undo" | "redo" }
+    | { transaction: null; kind: "clear" };
   afterChange: { transaction: Transaction };
   undo: { transaction: Transaction };
   redo: { transaction: Transaction };
@@ -268,6 +276,7 @@ export class History {
   clear(): void {
     this.undoStack = [];
     this.redoStack = [];
+    this.events.emit("change", { transaction: null, kind: "clear" });
   }
 
   private toEntry(transaction: Transaction): HistoryEntry {

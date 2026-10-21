@@ -62,7 +62,8 @@ const editor = createEditor({ clientId: "user-42" });
 
 ```ts
 editor.history.onChange(({ transaction, kind }) => {
-  // kind: "execute" | "undo" | "redo"
+  // kind: "execute" | "undo" | "redo" | "clear" (transaction is null for "clear")
+  // Fires after the stacks update — the right place to refresh Undo/Redo buttons.
 });
 
 // Every change this client makes — new transactions, undos and redos — with
@@ -71,9 +72,9 @@ editor.history.onCommit(({ operations, kind }) => { /* ship them */ });
 ```
 
 <Callout type="info">
-  `clear()` does not fire `onChange()` — it resets both stacks silently, with no event and no
-  transaction to describe (`"clear"` is a valid TypeScript value for `kind`, but nothing currently
-  emits it). Update your own state *before* calling `clear()` if you need to react to it.
+  `clear()` fires `onChange()` with `kind: "clear"` and `transaction: null` — including the clear
+  inside `editor.load()`. Don't read `canUndo()` from `document.change`: it fires from inside the
+  command, before the transaction reaches the undo stack, so the value is one step behind.
 </Callout>
 
 ## Introspecting the stacks
